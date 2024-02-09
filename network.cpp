@@ -34,6 +34,11 @@ public:
 
     Layer(int neuronCount, Layer* prevLayer = nullptr, Layer* nextLayer = nullptr) : prev(prevLayer), next(nextLayer) {
         neurons.reserve(neuronCount);
+
+        // Fill the neurons vector.
+        for (int i = 0; i < neuronCount; i++) {
+            neurons.emplace_back();
+        }
     }
 
     void loadWeights(std::vector<double>& w) {
@@ -42,8 +47,11 @@ public:
             return;
         }
 
-        if (w.size() != prev->neurons.size() * neurons.size()) {
-            std::cerr << "Weights vector doesn't have the expected size. Weights not added." << std::endl;
+        int expectedSize = prev->neurons.size() * neurons.size();
+
+        if (w.size() != expectedSize) {
+            std::cerr << "Weights vector doesn't have the expected size. Weights not added. "
+                      << "Expected: " << expectedSize << ", Size: " << w.size() << std::endl;
             return;
         }
 
@@ -57,6 +65,7 @@ public:
             return;
         }
 
+        // Set initial values to the neurons of the layer.
         for (size_t i = 0; i < neurons.size(); i++) {
             neurons[i].setValue(initialValues[i]);
         }
@@ -79,7 +88,6 @@ public:
             // Iterate through every weight and neuron of the current layer.
             for (size_t j = 0; j < neurons.size(); j++) {
                 double weight = weights[j + i * neurons.size()];
-
                 neurons[j].setValue(neurons[j].getValue() + prevNeuron.getValue() * weight);
             }
         }
@@ -104,12 +112,12 @@ public:
 
 
 class NeuralNetwork {
-    Layer inputLayer;
-    Layer outputLayer;
+    Layer* inputLayer;
+    Layer* outputLayer;
     std::vector<std::vector<double>> weights;
 
 public:
-    NeuralNetwork(Layer& inputL, Layer& outputL, const std::string& weightsPath) : inputLayer(inputL), outputLayer(outputL) {
+    NeuralNetwork(Layer* inputL, Layer* outputL, const std::string& weightsPath) : inputLayer(inputL), outputLayer(outputL) {
         std::ifstream file(weightsPath);
         std::string line;
         std::vector<double> layerWeights;
@@ -145,11 +153,12 @@ public:
         }
 
         // Iterate through every layer and assign them their weights.
-        Layer* currLayer = &inputLayer;
+        Layer* currLayer = inputLayer->next;
 
         for (std::vector<double>& w : weights) {
             if (currLayer == nullptr) {
-                std::cerr << "The weights vector is too large for this neural network. Extra weights have been ignored." << std::endl;
+                std::cerr << "The weights vector is too large for this neural network. Extra weights have been ignored. "
+                          << "Weights vector size: " << weights.size() << std::endl;
                 break;
             } else {
                 currLayer->loadWeights(w);
@@ -160,10 +169,10 @@ public:
 
     std::vector<double> compute(std::vector<double> input) {
         // Load the input vector to the input layer.
-        inputLayer.setInitialValues(input);
+        inputLayer->setInitialValues(input);
 
         // Compute the values through every layer until the outputLayer.
-        Layer* currLayer = inputLayer.next;
+        Layer* currLayer = inputLayer->next;
 
         while (currLayer != nullptr) {
             currLayer->computeValues();
@@ -171,6 +180,6 @@ public:
         }
 
         // Return the computed values.
-        return outputLayer.getValues();
+        return outputLayer->getValues();
     }
 };
