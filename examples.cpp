@@ -5,70 +5,47 @@
 
 void example1();
 void example2();
-void example3();
 void printResult(std::vector<double> vec);
 
 int main() {
-    example3();
+    example2();
 
     return 0;
 }
 
 
 void example1() {
-    Layer l1(2, nullptr);
-    Layer l2(4, &l1);
-    l1.next = &l2;
-    Layer l3(1, &l2, nullptr);
-    l2.next = &l3;
+    std::vector<int> input = {2, 4, 1};
 
-    NeuralNetwork neuralNetwork(&l1, &l3, "./weights/examples/example1.weights");
+    NeuralNetwork neuralNetwork(input, "./networks/examples/example1.weights", "./networks/examples/example1.bias");
+    std::vector<double> inputLayer = {0.55, 0.9};
 
-    std::vector<double> input;
-    input.push_back(-0.55);
-    input.push_back(0.9);
+    std::vector<double> result = neuralNetwork.compute(inputLayer);
+    printResult(result);
 
-    std::vector<double> result = neuralNetwork.compute(input);
+    GeneticNetworkTrainer trainer(&neuralNetwork, "./networks/examples/example1_mutations", 0.05, 0.05, 1);
+    NeuralNetwork mutated1 = trainer.mutate(1, 1);
+
+    result = mutated1.compute(inputLayer);
+    printResult(result);
+
+    NeuralNetwork mutated2 = trainer.mutate(1, 1);
+
+    result = mutated2.compute(inputLayer);
     printResult(result);
 }
 
 void example2() {
-    Layer l1(2, nullptr);
-    Layer l2(4, &l1);
-    l1.next = &l2;
-    Layer l3(1, &l2, nullptr);
-    l2.next = &l3;
+    std::vector<int> input = {256, 128, 64, 1};
 
-    NeuralNetwork neuralNetwork(&l1, &l3, "./weights/examples/example2.weights", true);
+    NeuralNetwork neuralNetwork(input, "./networks/examples/example2.weights", "./networks/examples/example2.bias");
+    GeneticNetworkTrainer trainer(&neuralNetwork, "./networks/examples/example1_mutations", 0.05, 0.05, 1);
 
-    std::vector<double> input;
-    input.push_back(-0.55);
-    input.push_back(0.9);
-
-    std::vector<double> result = neuralNetwork.compute(input);
-    printResult(result);
-}
-
-void example3() {
-    Layer l1(64, nullptr);
-    Layer l2(256, &l1);
-    l1.next = &l2;
-    Layer l3(512, &l2, nullptr);
-    l2.next = &l3;
-    Layer l4(1, &l3, nullptr);
-    l3.next = &l4;
-
-    NeuralNetwork neuralNetwork(&l1, &l4, "./weights/examples/example3.weights", true);
-
-    std::vector<double> input = {
-    -0.97, -0.27, 0.28, -0.76, -0.69, 0.68, 0.43, -0.95, 0.6, -0.8, 0.51, -0.05, 0.75, -0.81, -0.87, 0.99, 
-    0.53, 0.84, 0.85, -0.02, -0.37, 0.67, 0.32, 0.44, 0.96, 0.55, -0.7, 0.35, 0.57, 0.58, -0.9, -0.33, 
-    0.31, -0.99, -0.57, 0.31, 0.45, -0.56, -0.82, 0.12, 0.09, 0.13, -0.87, -0.35, -0.6, -0.95, 0.0, 0.16, 
-    0.0, -0.92, 0.51, 0.29, -0.04, -0.59, -0.29, 0.42, 0.97, 0.37, -0.15, -0.4, -0.47, -0.41, 0.52, 0.58
-};
-
-    std::vector<double> result = neuralNetwork.compute(input);
-    printResult(result);
+    std::string obj1 = "Circle";
+    std::string path1 = "./training/circles16x16/";
+    std::string obj2 = "Square";
+    std::string path2 = "./training/squares16x16/";
+    trainer.trainBinary(obj1, path1, obj2, path2);
 }
 
 void printResult(std::vector<double> vec) {
