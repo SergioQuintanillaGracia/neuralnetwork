@@ -1,12 +1,18 @@
-#include <iostream>
-#include <vector>
 #include <fstream>
+#include <iostream>
+#include <cmath>
+#include <random>
 #include <sstream>
+#include <vector>
+
 
 class Neuron {
     double value;
+    double bias;
 
 public:
+    Neuron(double b = 0) : bias(b) {};
+
     void setValue(double newValue) {
         value = newValue;
     }
@@ -15,8 +21,20 @@ public:
         return value;
     }
 
-    void normalizeValue(int enteringNeuronCount) {
-        value /= enteringNeuronCount;
+    void setBias(double newBias) {
+        bias = newBias;
+    }
+
+    double getBias() {
+        return bias;
+    }
+
+    void applyActivation() {
+        // Apply the bias.
+        value += bias;
+
+        // Use the sigmoid function to set the new value of the neuron.
+        value = 1 / (1 + std::exp(-value));
     }
 };
 
@@ -31,9 +49,11 @@ class Layer {
 public:
     Layer* prev;
     Layer* next;
+    int neuronAmount;
 
     Layer(int neuronCount, Layer* prevLayer = nullptr, Layer* nextLayer = nullptr) : prev(prevLayer), next(nextLayer) {
         neurons.reserve(neuronCount);
+        neuronAmount = neuronCount;
 
         // Fill the neurons vector.
         for (int i = 0; i < neuronCount; i++) {
@@ -47,7 +67,7 @@ public:
             return;
         }
 
-        int expectedSize = prev->neurons.size() * neurons.size();
+        int expectedSize = prev->neuronAmount * neuronAmount;
 
         if (w.size() != expectedSize) {
             std::cerr << "Weights vector doesn't have the expected size. Weights not added. "
@@ -59,14 +79,14 @@ public:
     }
 
     void setInitialValues(const std::vector<double>& initialValues) {
-        if (initialValues.size() != neurons.size()) {
-            std::cerr << "Tried to initialize the values of a layer with a vector that is not the expected size."
+        if (initialValues.size() != neuronAmount) {
+            std::cerr << "Tried to initialize the values of a layer with a vector that is not the expected size. "
                       << "Values not initialized." << std::endl;
             return;
         }
 
         // Set initial values to the neurons of the layer.
-        for (size_t i = 0; i < neurons.size(); i++) {
+        for (size_t i = 0; i < neuronAmount; i++) {
             neurons[i].setValue(initialValues[i]);
         }
     }
@@ -78,7 +98,7 @@ public:
             return;
         }
 
-        int prevNeuronAmount = prev->neurons.size();
+        int prevNeuronAmount = prev->neuronAmount;
         std::vector<Neuron>& prevNeurons = prev->neurons;
 
         // Iterate through every neuron of the previous layer.
@@ -86,15 +106,16 @@ public:
             Neuron& prevNeuron = prevNeurons[i];
 
             // Iterate through every weight and neuron of the current layer.
-            for (size_t j = 0; j < neurons.size(); j++) {
-                double weight = weights[j + i * neurons.size()];
+            for (size_t j = 0; j < neuronAmount; j++) {
+                double weight = weights[j + i * neuronAmount];
                 neurons[j].setValue(neurons[j].getValue() + prevNeuron.getValue() * weight);
             }
         }
 
-        // Normalize the value of each neuron of this layer.
+        // Currently, the neurons may have very big values. To solve this, we apply the activation
+        // function, to restrict their values to a range.
         for (Neuron& n : neurons) {
-            n.normalizeValue(prevNeuronAmount);
+            n.applyActivation();
         }
     }
 
@@ -116,8 +137,87 @@ class NeuralNetwork {
     Layer* outputLayer;
     std::vector<std::vector<double>> weights;
 
+    void generateRandomWeights(const std::string& path, const std::vector<int> neuronsPerLayer, double randomVariation) {
+        std::ofstream file(path);
+
+        if (!file.is_open()) {
+            std::cerr << "Could not open weights file for writing: " << path << std::endl;
+            return;
+        }
+
+        // Initialize the random number generator, with a standard deviation of randomVariation.
+        std::default_random_engine generator;
+        std::normal_distribution<double> distribution(0, randomVariation);
+
+        // Iterate through each layer except for the last one.
+        for (size_t i = 0; i < neuronsPerLayer.size() - 1; i++) {
+            int currentLayerSize = neuronsPerLayer[i];
+            int nextLayerSize = neuronsPerLayer[i + 1];
+
+            // Generate the weights for the connections from the current layer to the next one.
+            for (size_t j = 0; j < currentLayerSize; j++) {
+                for (size_t k = 0; k < nextLayerSize; k++) {
+                    double randomWeight = std::max<double>(-1, std::min<double>(1, distribution(generator)));
+                    file << randomWeight << " ";
+                }
+
+                file << "\n";
+            }
+
+            file << "#\n";
+        }
+
+        file.close();
+    }
+
+    void generateRandomBiases(const std::string& path, const std::vector<int> neuronsPerLayer, double randomVariation) {
+        std::ofstream file(path);
+
+        if (!file.is_open()) {
+            std::cerr << "Could not open bias file for writing: " << path << std::endl;
+            return;
+        }
+
+        // Initialize the random number generator, with a standard deviation of randomVariation.
+        std::default_random_engine generator;
+        std::normal_distribution<double> distribution(0, randomVariation);
+
+        // Iterate through each layer except for the first one.
+        for (size_t i = 1; i < neuronsPerLayer.size(); i++) {
+            int currentLayerSize = neuronsPerLayer[i];
+
+            for (size_t j = 0; j < currentLayerSize; j++) {
+                double randomBias = std::max<double>(-0.5, std::min<double>(0.5, distribution(generator)));
+                file << randomBias << " ";
+            }
+
+            file << "\n";
+        }
+
+        file.close();
+    }
+
 public:
-    NeuralNetwork(Layer* inputL, Layer* outputL, const std::string& weightsPath) : inputLayer(inputL), outputLayer(outputL) {
+    NeuralNetwork(Layer* inputL, Layer* outputL, const std::string& weightsPath, const std::string& biasesPath, bool randomize = false,
+                  double randomWeightVariation = 0.3, double randomBiasVariation = 0.1) : inputLayer(inputL), outputLayer(outputL) {
+        if (randomize) {
+            // Store the amount of neurons of each layer in a vector.
+            std::vector<int> neuronsPerLayer;
+
+            Layer* currLayer = inputLayer;
+
+            while (currLayer != nullptr) {
+                neuronsPerLayer.push_back(currLayer->neuronAmount);
+                currLayer = currLayer->next;
+            }
+
+            // Generate the random weights file.
+            generateRandomWeights(weightsPath, neuronsPerLayer, randomWeightVariation);
+
+            // Generate the random biases file.
+            generateRandomBiases(biasesPath, neuronsPerLayer, randomBiasVariation);
+        }
+        
         std::ifstream file(weightsPath);
         std::string line;
         std::vector<double> layerWeights;
