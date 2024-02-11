@@ -183,75 +183,11 @@ class NeuralNetwork {
     Layer* inputLayer;
     Layer* outputLayer;
 
-    void generateRandomWeights(const std::string& path, const std::vector<int> neuronsPerLayer, double randomVariation) {
-        std::ofstream file(path);
-
-        if (!file.is_open()) {
-            std::cerr << "Could not open weights file for writing: " << path << std::endl;
-            return;
-        }
-
-        // Initialize the random number generator, with a standard deviation of randomVariation.
-        std::default_random_engine generator;
-        std::normal_distribution<double> distribution(0, randomVariation);
-
-        // Iterate through each layer except for the last one.
-        for (size_t i = 0; i < neuronsPerLayer.size() - 1; i++) {
-            int currentLayerSize = neuronsPerLayer[i];
-            int nextLayerSize = neuronsPerLayer[i + 1];
-
-            // Generate the weights for the connections from the current layer to the next one.
-            for (size_t j = 0; j < currentLayerSize; j++) {
-                for (size_t k = 0; k < nextLayerSize; k++) {
-                    double randomWeight = std::max<double>(-1, std::min<double>(1, distribution(generator)));
-                    file << randomWeight << " ";
-                }
-
-                file << "\n";
-            }
-
-            file << "#\n";
-        }
-
-        file.close();
-    }
-
-    void generateRandomBiases(const std::string& path, const std::vector<int> neuronsPerLayer, double randomVariation) {
-        std::ofstream file(path);
-
-        if (!file.is_open()) {
-            std::cerr << "Could not open bias file for writing: " << path << std::endl;
-            return;
-        }
-
-        // Initialize the random number generator, with a standard deviation of randomVariation.
-        std::default_random_engine generator;
-        std::normal_distribution<double> distribution(0, randomVariation);
-
-        // Iterate through each layer except for the first one.
-        for (size_t i = 1; i < neuronsPerLayer.size(); i++) {
-            int currentLayerSize = neuronsPerLayer[i];
-
-            for (size_t j = 0; j < currentLayerSize; j++) {
-                double randomBias = std::max<double>(-0.5, std::min<double>(0.5, distribution(generator)));
-                file << randomBias << " ";
-            }
-
-            file << "\n";
-        }
-
-        file.close();
-    }
-
-public:
-    NeuralNetwork(std::vector<int>& nPerLayer, const std::string& weightsPath, const std::string& biasesPath, bool randomize = false,
-                  double randomWeightVariation = 0.3, double randomBiasVariation = 0.1) {
-        if (nPerLayer.size() < 2) {
+    void initializeLayers() {
+        if (neuronsPerLayer.size() < 2) {
             std::cerr << "Cannot create a NeuralNetwork with less than 2 layers." << std::endl;
             return;
         }
-
-        neuronsPerLayer = nPerLayer;
 
         // Create the neural network layers.
         inputLayer = new Layer(neuronsPerLayer[0], nullptr, nullptr);
@@ -265,36 +201,21 @@ public:
         }
 
         outputLayer = currLayer;
-        
-        if (randomize) {
-            // Store the amount of neurons of each layer in a vector.
-            std::vector<int> neuronsPerLayer;
+    }
 
-            Layer* currLayer = inputLayer;
-
-            while (currLayer != nullptr) {
-                neuronsPerLayer.push_back(currLayer->neuronAmount);
-                currLayer = currLayer->next;
-            }
-
-            // Generate the random weights file.
-            generateRandomWeights(weightsPath, neuronsPerLayer, randomWeightVariation);
-
-            // Generate the random biases file.
-            generateRandomBiases(biasesPath, neuronsPerLayer, randomBiasVariation);
-        }
-        
+    std::vector<std::vector<double>> getWeightsFromFile(const std::string& weightsPath) {
         // Initialize the weights file for reading.
         std::ifstream fileW(weightsPath);
         std::string lineW;
+        std::vector<std::vector<double>> weightsVec;
         std::vector<double> layerWeights;
 
-        // Read the weightsPath file, extract the weights, and store them in the weights vector.
+        // Read the weightsPath file, extract the weights, and store them in the weightsVec vector.
         if (fileW.is_open()) {
             while (getline(fileW, lineW)) {
                 if (lineW == "#") {
                     // There is a change of layer.
-                    weights.push_back(layerWeights);
+                    weightsVec.push_back(layerWeights);
                     layerWeights.clear();
                 } else {
                     // Convert the line to a stream.
@@ -308,9 +229,9 @@ public:
                 }
             }
 
-            // In case the file doesn't end with a #, push layerWeights to weights.
+            // In case the file doesn't end with a #, push layerWeights to weightsVec.
             if (!layerWeights.empty()) {
-                weights.push_back(layerWeights);
+                weightsVec.push_back(layerWeights);
             }
 
             fileW.close();
@@ -319,6 +240,93 @@ public:
             std::cerr << "Could not open weights file: " << weightsPath << std::endl;
         }
 
+        return weightsVec;
+    }
+
+    std::vector<std::vector<double>> getBiasesFromFile(const std::string& biasesPath) {
+        // Initialize the biases file for reading.
+        std::ifstream fileB(biasesPath);
+        std::string lineB;
+        std::vector<std::vector<double>> biasesVec;
+        std::vector<double> layerBiases;
+
+        // Read the biasesPath file, extract the biases, and store them in the biasesVec vector.
+        if (fileB.is_open()) {
+            while (getline(fileB, lineB)) {
+                // Convert the line to a stream.
+                std::istringstream iss(lineB);
+                double bias;
+
+                // Read and store doubles from the stream into bias, and then into layerBiases.
+                while (iss >> bias) {
+                    layerBiases.push_back(bias);
+                }
+
+                // Push the layerBiases vector to the biasesVec vector.
+                biasesVec.push_back(layerBiases);
+                layerBiases.clear();
+            }
+
+            fileB.close();
+
+        } else {
+            std::cerr << "Could not open biases file: " << biasesPath << std::endl;
+        }
+
+        return biasesVec;
+    }
+
+    std::vector<std::vector<double>> generateRandomWeights(const std::vector<int>& neuronsPerLayer, double randomVariation) {
+        std::vector<std::vector<double>> weightsVec;
+
+        // Initialize the random number generator, with a standard deviation of randomVariation.
+        std::default_random_engine generator;
+        std::normal_distribution<double> distribution(0, randomVariation);
+
+        // Iterate through each layer except for the last one.
+        for (size_t i = 0; i < neuronsPerLayer.size() - 1; i++) {
+            std::vector<double> layerWeights;
+            int currentLayerSize = neuronsPerLayer[i];
+            int nextLayerSize = neuronsPerLayer[i + 1];
+
+            // Generate the weights for the connections from the current layer to the next one.
+            for (size_t j = 0; j < currentLayerSize; j++) {
+                for (size_t k = 0; k < nextLayerSize; k++) {
+                    double randomWeight = std::max<double>(-1, std::min<double>(1, distribution(generator)));
+                    layerWeights.push_back(randomWeight);
+                }
+            }
+
+            weightsVec.push_back(layerWeights);
+        }
+
+        return weightsVec;
+    }
+
+    std::vector<std::vector<double>> generateRandomBiases(const std::vector<int>& neuronsPerLayer, double randomVariation) {
+        std::vector<std::vector<double>> biasesVec;
+
+        // Initialize the random number generator, with a standard deviation of randomVariation.
+        std::default_random_engine generator;
+        std::normal_distribution<double> distribution(0, randomVariation);
+
+        // Iterate through each layer except for the first one.
+        for (size_t i = 1; i < neuronsPerLayer.size(); i++) {
+            std::vector<double> layerBiases;
+            int currentLayerSize = neuronsPerLayer[i];
+
+            for (size_t j = 0; j < currentLayerSize; j++) {
+                double randomBias = std::max<double>(-0.5, std::min<double>(0.5, distribution(generator)));
+                layerBiases.push_back(randomBias);
+            }
+
+            biasesVec.push_back(layerBiases);
+        }
+
+        return biasesVec;
+    }
+
+    void assignWeights() {
         // Iterate through every layer and assign them their weights.
         Layer* currLayerW = inputLayer->next;
 
@@ -332,35 +340,9 @@ public:
                 currLayerW = currLayerW->next;
             }
         }
+    }
 
-        // Initialize the biases file for reading.
-        std::ifstream fileB(biasesPath);
-        std::string lineB;
-        std::vector<double> layerBiases;
-
-        // Read the biasesPath file, extract the biases, and store them in the biases vector.
-        if (fileB.is_open()) {
-            while (getline(fileB, lineB)) {
-                // Convert the line to a stream.
-                std::istringstream iss(lineB);
-                double bias;
-
-                // Read and store doubles from the stream into weight, and then into layerBiases.
-                while (iss >> bias) {
-                    layerBiases.push_back(bias);
-                }
-
-                // Push the layerBiases vector to the biases vector.
-                biases.push_back(layerBiases);
-                layerBiases.clear();
-            }
-
-            fileB.close();
-
-        } else {
-            std::cerr << "Could not open biases file: " << biasesPath << std::endl;
-        }
-
+    void assignBiases() {
         // Iterate through every layer and assign them their biases.
         Layer* currLayerB = inputLayer->next;
 
@@ -374,7 +356,104 @@ public:
                 currLayerB = currLayerB->next;
             }
         }
+    }
+
+public:
+    NeuralNetwork(std::vector<int>& nPerLayer, const std::string& weightsPath, const std::string& biasesPath, bool randomize = false,
+                  double randomWeightVariation = 0.3, double randomBiasVariation = 0.1) : neuronsPerLayer(nPerLayer) {
+        initializeLayers();
+
+        std::vector<std::vector<double>> weightsVec;
+        std::vector<std::vector<double>> biasesVec;
+
+        if (randomize) {
+            // Store the amount of neurons of each layer in a vector.
+            std::vector<int> neuronsPerLayer;
+
+            Layer* currLayer = inputLayer;
+
+            while (currLayer != nullptr) {
+                neuronsPerLayer.push_back(currLayer->neuronAmount);
+                currLayer = currLayer->next;
+            }
+
+            // Generate random weights.
+            weights = generateRandomWeights(neuronsPerLayer, randomWeightVariation);
+
+            // Generate random biases.
+            biases = generateRandomBiases(neuronsPerLayer, randomBiasVariation);
+        } else {
+            weights = getWeightsFromFile(weightsPath);
+            biases = getBiasesFromFile(biasesPath);
+        }
+
+        assignWeights();
+        assignBiases();
+    }
+
+    NeuralNetwork(std::vector<int>& nPerLayer, std::vector<std::vector<double>>& weightsVec, std::vector<std::vector<double>>& biasesVec)
+                  : neuronsPerLayer(nPerLayer) {
+        initializeLayers();
+
+        weights = weightsVec;
+        biases = biasesVec;
+
+        assignWeights();
+        assignBiases();
     };
+
+    void writeWeightsToFile(const std::string& weightsPath) {
+        // Store the weights.
+        std::ofstream fileW(weightsPath);
+
+        if (!fileW.is_open()) {
+            std::cerr << "Could not open weights file for writing: " << weightsPath << std::endl;
+            return;
+        }
+
+        // Iterate through each subvector.
+        for (size_t i = 0; i < weights.size(); i++) {
+            int currentLayerSize = neuronsPerLayer[i];
+            int nextLayerSize = neuronsPerLayer[i + 1];
+
+            // Write the weights for the connections from the current layer to the next one.
+            for (size_t j = 0; j < currentLayerSize; j++) {
+                for (size_t k = 0; k < nextLayerSize; k++) {
+                    double weight = weights[i][j * nextLayerSize + k];
+                    fileW << weight << " ";
+                }
+
+                fileW << "\n";
+            }
+
+            fileW << "#\n";
+        }
+
+        fileW.close();
+    }
+
+    void writeBiasesToFile(const std::string& biasesPath) {
+        std::ofstream fileB(biasesPath);
+
+        if (!fileB.is_open()) {
+            std::cerr << "Could not open bias file for writing: " << biasesPath << std::endl;
+            return;
+        }
+
+        // Iterate through each layer except for the first one.
+        for (size_t i = 1; i < neuronsPerLayer.size(); i++) {
+            int currentLayerSize = neuronsPerLayer[i];
+
+            for (size_t j = 0; j < currentLayerSize; j++) {
+                double bias = biases[i - 1][j];
+                fileB << bias << " ";
+            }
+
+            fileB << "\n";
+        }
+
+        fileB.close();
+    }
 
     ~NeuralNetwork() {
         // Delete every layer pointer.
@@ -451,74 +530,16 @@ class GeneticNetworkTrainer {
         return mutatedVec;
     }
 
-    NeuralNetwork* mutate(int generation, int networkNumber) {
-        // Returns a mutated version of the given network.
-        // base: Base network. The network will be copied, and the copy mutated.
-        // generation: Int representing the current generation.
-        // networkNumber: Int used to name the weights and biases files. Goes from 1 to mutationsPerGen.
-        std::string path = trainPath + "/gen" + std::to_string(generation);
-        std::string weightsPath = path + "/" + std::to_string(networkNumber) + ".weights";
-        std::string biasesPath = path + "/" + std::to_string(networkNumber) + ".bias";
-        makeDir(path);
+    NeuralNetwork* mutate() {
+        // Returns a mutated version of baseNetwork.
 
         // Get the mutated versions of the weights and biases in vector form.
         std::vector<std::vector<double>> mutatedWeights = mutateVector(baseNetwork->getWeightsVector(), weightMutationAmount);
         std::vector<std::vector<double>> mutatedBiases = mutateVector(baseNetwork->getBiasesVector(), biasMutationAmount);
-
-        // Store the vectors in files with the correct formatting.
-        // Store the weights.
-        std::ofstream fileW(weightsPath);
-
-        if (!fileW.is_open()) {
-            std::cerr << "Could not open weights file for mutation writing: " << weightsPath << std::endl;
-        }
-
-        // Iterate through each subvector.
-        std::vector<int> baseNeuronsPerLayer = baseNetwork->getNeuronsPerLayerVector();
-
-        for (size_t i = 0; i < mutatedWeights.size(); i++) {
-            int currentLayerSize = baseNeuronsPerLayer[i];
-            int nextLayerSize = baseNeuronsPerLayer[i + 1];
-
-            // Write the weights for the connections from the current layer to the next one.
-            for (size_t j = 0; j < currentLayerSize; j++) {
-                for (size_t k = 0; k < nextLayerSize; k++) {
-                    double weight = mutatedWeights[i][j * nextLayerSize + k];
-                    fileW << weight << " ";
-                }
-
-                fileW << "\n";
-            }
-
-            fileW << "#\n";
-        }
-
-        fileW.close();
-
-        // Store the biases.
-        std::ofstream fileB(biasesPath);
-
-        if (!fileB.is_open()) {
-            std::cerr << "Could not open bias file for mutation writing: " << biasesPath << std::endl;
-        }
-
-        // Iterate through each layer except for the first one.
-        for (size_t i = 1; i < baseNeuronsPerLayer.size(); i++) {
-            int currentLayerSize = baseNeuronsPerLayer[i];
-
-            for (size_t j = 0; j < currentLayerSize; j++) {
-                double bias = mutatedBiases[i - 1][j];
-                fileB << bias << " ";
-            }
-
-            fileB << "\n";
-        }
-
-        fileB.close();
-
+        
         // Create and return the mutated NeuralNetwork.
-        std::vector<int> layers = {baseNeuronsPerLayer};
-        NeuralNetwork* mutatedNetwork = new NeuralNetwork(layers, weightsPath, biasesPath);
+        std::vector<int> layers = baseNetwork->getNeuronsPerLayerVector();
+        NeuralNetwork* mutatedNetwork = new NeuralNetwork(layers, mutatedWeights, mutatedBiases);
 
         return mutatedNetwork;
     }
@@ -527,60 +548,148 @@ public:
     GeneticNetworkTrainer(NeuralNetwork* baseNet, const std::string& tPath, double wMutation, double bMutation, int mutations)
                           : baseNetwork(baseNet), trainPath(tPath), weightMutationAmount(wMutation), biasMutationAmount(bMutation),
                             mutationsPerGen(mutations) {};
+
+    double fitnessBasic(NeuralNetwork* network, const std::string& path1, const std::string& path2) {
+        // Returns the sum of the total images the NeuralNetwork got right.
+        std::vector<std::vector<int>> fitnessData = getFitnessData(network, path1, path2);
+
+        return fitnessData[0][1] + fitnessData[1][1];
+    }
+
+    double fitnessEqual(NeuralNetwork* network, const std::string& path1, const std::string& path2) {
+        // Returns the sum of the total images the NeuralNetwork got right times the max of a number between
+        // 0 and 1, and 0.5.
+        // This number is greater when the number of obj1 images the NeuralNetwork got right is similar to
+        // the number of obj2 images it got right.
+        // Use this function if you want the NeuralNetwork to learn to recognize obj1 and obj2 with a similar
+        // precission.
+        std::vector<std::vector<int>> fitnessData = getFitnessData(network, path1, path2);
+
+        double obj1Total = fitnessData[0][0];
+        double obj1Right = fitnessData[0][1];
+        double obj2Total = fitnessData[1][0];
+        double obj2Right = fitnessData[1][1];
+
+        double ratio = std::max(0.5, std::min(obj1Right / (std::max(1.0, obj2Right)), obj2Right / (std::max(1.0, obj1Right))));
+        double points = ratio * (obj1Right + obj2Right);
+
+        return points;
+    }
+
+    std::string getAccuracyString(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2) {
+        std::vector<std::vector<int>> fitnessData = getFitnessData(baseNetwork, path1, path2);
+
+        double obj1Total = fitnessData[0][0];
+        double obj1Right = fitnessData[0][1];
+        double obj2Total = fitnessData[1][0];
+        double obj2Right = fitnessData[1][1];
+
+        std::string accuracyString = obj1 + ": " + std::to_string(obj1Right / obj1Total * 100) + "% | " + obj2 + ": "
+                                     + std::to_string(obj2Right / obj2Total * 100) + "% | General Accuracy: "
+                                     + std::to_string((obj1Right + obj2Right) / (obj1Total + obj2Total) * 100) + "%";
+
+        return accuracyString;
+    }
     
-    double getFitness(NeuralNetwork* network, const std::string& path1, const std::string& path2) {
-        double points = 0;
+    std::vector<std::vector<int>> getFitnessData(NeuralNetwork* network, const std::string& path1, const std::string& path2) {
+        // Returns a vector with the following structure:
+        // {{totalSamples1, rightSamples1}, {totalSamples2, rightSamples2}}
+        std::vector<std::vector<int>> sampleData;
 
         // Test against object 1 images.
-        for (std::string imagePath : getFiles(path1)) {
+        std::vector<std::string> paths1 = getFiles(path1);
+
+        int totalSamples1 = paths1.size();
+        int rightSamples1 = 0;
+
+        for (std::string imagePath : paths1) {
             std::vector<double> input = extractBrightness(imagePath);
             double result = network->compute(input)[0];
 
             if (result <= 0.5) {
                 // The neural network correctly identified the object.
-                points++;
+                rightSamples1++;
             }
         }
 
+        std::vector<int> sampleData1 = {totalSamples1, rightSamples1};
+        sampleData.push_back(sampleData1);
+
         // Test against object 2 images.
-        for (std::string imagePath : getFiles(path2)) {
+        std::vector<std::string> paths2 = getFiles(path2);
+
+        int totalSamples2 = paths2.size();
+        int rightSamples2 = 0;
+
+        for (std::string imagePath : paths2) {
             std::vector<double> input = extractBrightness(imagePath);
             double result = network->compute(input)[0];
 
             if (result > 0.5) {
                 // The neural network correctly identified the object.
-                points++;
+                rightSamples2++;
             }
         }
 
-        return points;
+        std::vector<int> sampleData2 = {totalSamples2, rightSamples2};
+        sampleData.push_back(sampleData2);
+
+        return sampleData;
     }
     
     void trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int genLimit, bool multithread = false) {
         // Trains a network to distinguish between 2 objects.
         // Images of the first object are analised from path1, and images of the second object from path2.
+        double prevMaxPoints = -1;
+
         for (int gen = 1; gen <= genLimit; gen++) {
             std::vector<NeuralNetwork*> networkVector;
-            std::vector<int> networkPoints;
-            std::vector<std::thread> threads;
-            std::mutex mutex;
+            std::vector<double> networkPoints;
+
             // Add the current base network to compare it to its mutations.
             networkVector.push_back(baseNetwork);
             
             // Fill the networkVector with mutationsPerGen - 1 mutations of the base network.
             for (int i = 1; i < mutationsPerGen; i++) {
-                networkVector.push_back(mutate(gen, i + 1));
+                networkVector.push_back(mutate());
             }
 
+
             // Get the fitness of all NeuralNetworks and store it in points.
-            // TODO: Multithread this process when multithread is set to true. The threads used will be given by the variable mutationsPerGen.
-            for (NeuralNetwork* nn : networkVector) {
-                networkPoints.push_back(getFitness(nn, path1, path2));
+            if (multithread) {
+                // Reserve the necessary space in the networkPoints vector.
+                networkPoints.resize(networkVector.size());
+
+                std::vector<std::thread> threads;
+                std::mutex mutex;
+
+                // Define the getFitnessThreaded lambda function that will be executed in each thread.
+                auto getFitnessThreaded = [&](NeuralNetwork* nn, int index) {
+                    double points = fitnessBasic(nn, path1, path2);
+                    std::lock_guard<std::mutex> lock(mutex);
+                    networkPoints[index] = points;
+                };
+
+                // Run fitness calculations.
+                for (int i = 0; i < networkVector.size(); i++) {
+                    // Create a thread for each NeuralNetwork.
+                    threads.emplace_back(getFitnessThreaded, networkVector[i], i);
+                }
+
+                // Wait for all threads to finish.
+                for (auto& thread : threads) {
+                    thread.join();
+                }
+
+            } else {
+                for (NeuralNetwork* nn : networkVector) {
+                    networkPoints.push_back(fitnessBasic(nn, path1, path2));
+                }
             }
 
             // Find the best performing network, and set it as the base network.
-            int maxPoints = -1;
-            int maxPointsIndex = -1;
+            double maxPoints = -1;
+            double maxPointsIndex = -1;
 
             for (int i = 0; i < networkPoints.size(); i++) {
                 if (networkPoints[i] >= maxPoints) {
@@ -601,7 +710,21 @@ public:
                 }
             }
 
-            std::cout << "Gen " << gen << " best performer: " << maxPointsIndex + 1 << ", Points: " << maxPoints << std::endl;
+            // Write the weights and biases of the best NeuralNetwork to disk, only if it performed
+            // better.
+            if (maxPoints > prevMaxPoints) {
+                std::string path = trainPath;
+                std::string weightsPath = path + "/" + "gen" + std::to_string(gen) + ".weights";
+                std::string biasesPath = path + "/" + "gen" + std::to_string(gen) + ".bias";
+                makeDir(path);
+
+                baseNetwork->writeWeightsToFile(weightsPath);
+                baseNetwork->writeBiasesToFile(biasesPath);
+
+                prevMaxPoints = maxPoints;
+            }
+
+            std::cout << "Gen " << gen << " best points: " << maxPoints << std::endl;
         }
     }
 }; 

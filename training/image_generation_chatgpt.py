@@ -9,8 +9,9 @@ from PIL import Image, ImageDraw
 import os
 from math import ceil
 import random
+import os, hashlib
 
-res = 16  # The image will be res x res pixels
+res = 8  # The image will be res x res pixels
 
 def generate_shapes(shape, number_of_images):
     base_path = os.path.join(os.getcwd(), "training", shape + f"{res}x{res}")
@@ -43,9 +44,49 @@ def generate_shapes(shape, number_of_images):
         img.save(os.path.join(base_path, filename))
 
 # Parameters
-number_of_images_per_shape = 200  # Specify the desired number of images
+number_of_images_per_shape = 400  # Specify the desired number of images
 
 generate_shapes('squares', number_of_images_per_shape)
 generate_shapes('circles', number_of_images_per_shape)
 
 print("Images generated successfully.")
+
+
+def hash_image(image_path):
+    with Image.open(image_path) as img:
+        # Convert the image to bytes
+        img_bytes = img.tobytes()
+        # Create a hash of the image bytes
+        hash = hashlib.sha256(img_bytes).hexdigest()
+    return hash
+
+def find_and_remove_duplicates(folder_path):
+    hashes = {}
+    duplicate_count = 0
+    
+    for filename in os.listdir(folder_path):
+        # Construct the full path to the image
+        file_path = os.path.join(folder_path, filename)
+        
+        # Calculate the image hash
+        image_hash = hash_image(file_path)
+        
+        # Check if the hash already exists in the dictionary
+        if image_hash in hashes:
+            print(f"Removing duplicate image: {filename}")
+            os.remove(file_path)
+            duplicate_count += 1
+        else:
+            hashes[image_hash] = filename
+    
+    print(f"Removed {duplicate_count} duplicate images.")
+
+
+print ("Removing duplicate images...")
+
+folder_path = os.path.join(os.getcwd(), "training", "squares" + f"{res}x{res}")
+find_and_remove_duplicates(folder_path)
+folder_path = os.path.join(os.getcwd(), "training", "circles" + f"{res}x{res}")
+find_and_remove_duplicates(folder_path)
+
+print("Duplicate images removed.")
