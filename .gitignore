@@ -31,6 +31,3 @@
 *.out
 *.app
 
-# Directories
-training/*
-!training/*.py
