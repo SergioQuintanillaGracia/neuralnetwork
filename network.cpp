@@ -66,17 +66,10 @@ public:
     Layer* next;
     int neuronAmount;
 
-    Layer(int neuronCount, Layer* prevLayer = nullptr, Layer* nextLayer = nullptr) : prev(prevLayer), next(nextLayer) {
-        neurons.reserve(neuronCount);
-        neuronAmount = neuronCount;
+    Layer(int neuronCount, Layer* prevLayer = nullptr, Layer* nextLayer = nullptr)
+          : prev(prevLayer), next(nextLayer), neurons(neuronCount), neuronAmount(neuronCount) {}
 
-        // Fill the neurons vector.
-        for (int i = 0; i < neuronCount; i++) {
-            neurons.emplace_back();
-        }
-    }
-
-    void loadWeights(std::vector<double>& w) {
+    void loadWeights(const std::vector<double>& w) {
         if (prev == nullptr) {
             std::cerr << "Tried to add weights to a layer with no previous layer. Weights can't and will not be added." << std::endl;
             return;
@@ -89,7 +82,7 @@ public:
                       << "Expected: " << expectedSize << ", Size: " << w.size() << std::endl;
             return;
         }
-
+        
         weights = w;
     }
 
@@ -143,7 +136,7 @@ public:
         for (size_t i = 0; i < prevNeuronAmount; i++) {
             Neuron& prevNeuron = prevNeurons[i];
 
-            // Iterate through every weight and neuron of the current layer.
+            // Iterate through every BEFOREweight and neuron of the current layer.
             for (size_t j = 0; j < neuronAmount; j++) {
                 double weight = weights[j + i * neuronAmount];
                 neurons[j].setValue(neurons[j].getValue() + prevNeuron.getValue() * weight);

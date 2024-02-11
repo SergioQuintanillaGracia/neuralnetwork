@@ -11,7 +11,7 @@ int main() {
 
     // Create the NeuralNetwork and GeneticNetworkTrainer objects.
     std::string basePath = "./networks/squares_circles_12x12/144_100_60_1";
-    std::string pointsPath = "424";
+    std::string pointsPath = "0";
     NeuralNetwork* neuralNetwork = new NeuralNetwork(layers, basePath + "/progress/" + pointsPath + ".weights", basePath + "/progress/" + pointsPath + ".bias", false);
     GeneticNetworkTrainer trainer(neuralNetwork, basePath, 0.02, 0.01, 18);
 
