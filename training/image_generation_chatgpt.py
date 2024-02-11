@@ -7,44 +7,45 @@
 
 from PIL import Image, ImageDraw
 import os
-from math import ceil
 import random
-import os, hashlib
+import hashlib
 
-res = 8  # The image will be res x res pixels
+# Target resolution for the output images
+target_res = 12  # or 16, depending on your needs
 
 def generate_shapes(shape, number_of_images):
-    base_path = os.path.join(os.getcwd(), "training", shape + f"{res}x{res}")
+    base_path = os.path.join(os.getcwd(), "training", shape + f"{target_res}x{target_res}")
     os.makedirs(base_path, exist_ok=True)
 
     for i in range(1, number_of_images + 1):
-        img = Image.new('RGB', (res, res), 'black')
+        # Generate at a higher resolution
+        high_res = 128  # High resolution for initial image generation
+        img = Image.new('RGB', (high_res, high_res), 'black')
         draw = ImageDraw.Draw(img)
 
         if shape == 'squares':
-            # Randomly determine size (2 to res / 2 pixels)
-            size = random.randint(2, int(res / 2))
-            # Ensure the square fits within the image bounds
-            max_offset = res - size
-            offset_x = random.randint(1, max_offset - 1)
-            offset_y = random.randint(1, max_offset - 1)
+            size = random.randint(high_res // 4, high_res // 2)
+            offset_x = random.randint(1, high_res - size - 1)
+            offset_y = random.randint(1, high_res - size - 1)
             shape_outline = [offset_x, offset_y, offset_x + size, offset_y + size]
             draw.rectangle(shape_outline, outline='white', fill='white')
         
         elif shape == 'circles':
-            # Randomly determine radius (2 to res / 4 pixels)
-            radius = random.randint(max(1, ceil(res / 12)), int(res / 4))
-            # Ensure the circle fits within the image bounds fully
-            offset_x = random.randint(radius + 1, res - radius - 1)
-            offset_y = random.randint(radius + 1, res - radius - 1)
+            radius = random.randint(high_res // 8, high_res // 4)
+            offset_x = random.randint(radius + 1, high_res - radius - 1)
+            offset_y = random.randint(radius + 1, high_res - radius - 1)
             shape_outline = [offset_x - radius, offset_y - radius, offset_x + radius, offset_y + radius]
             draw.ellipse(shape_outline, outline='white', fill='white')
+
+        # Resize the image to target resolution with antialiasing
+        img = img.resize((target_res, target_res), Image.LANCZOS)
 
         filename = f"{shape}{i:04}.png"
         img.save(os.path.join(base_path, filename))
 
-# Parameters
-number_of_images_per_shape = 400  # Specify the desired number of images
+
+# Adjust the number of images if needed
+number_of_images_per_shape = 400
 
 generate_shapes('squares', number_of_images_per_shape)
 generate_shapes('circles', number_of_images_per_shape)
@@ -73,7 +74,6 @@ def find_and_remove_duplicates(folder_path):
         
         # Check if the hash already exists in the dictionary
         if image_hash in hashes:
-            print(f"Removing duplicate image: {filename}")
             os.remove(file_path)
             duplicate_count += 1
         else:
@@ -84,9 +84,9 @@ def find_and_remove_duplicates(folder_path):
 
 print ("Removing duplicate images...")
 
-folder_path = os.path.join(os.getcwd(), "training", "squares" + f"{res}x{res}")
+folder_path = os.path.join(os.getcwd(), "training", "squares" + f"{target_res}x{target_res}")
 find_and_remove_duplicates(folder_path)
-folder_path = os.path.join(os.getcwd(), "training", "circles" + f"{res}x{res}")
+folder_path = os.path.join(os.getcwd(), "training", "circles" + f"{target_res}x{target_res}")
 find_and_remove_duplicates(folder_path)
 
 print("Duplicate images removed.")

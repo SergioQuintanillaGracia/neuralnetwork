@@ -379,9 +379,11 @@ public:
 
             // Generate random weights.
             weights = generateRandomWeights(neuronsPerLayer, randomWeightVariation);
+            writeWeightsToFile(weightsPath);
 
             // Generate random biases.
             biases = generateRandomBiases(neuronsPerLayer, randomBiasVariation);
+            writeBiasesToFile(biasesPath);
         } else {
             weights = getWeightsFromFile(weightsPath);
             biases = getBiasesFromFile(biasesPath);
@@ -557,8 +559,8 @@ public:
     }
 
     double fitnessEqual(NeuralNetwork* network, const std::string& path1, const std::string& path2) {
-        // Returns the sum of the total images the NeuralNetwork got right times the max of a number between
-        // 0 and 1, and 0.5.
+        // Returns the sum of the total images the NeuralNetwork got right times a number between 0 and 1,
+        // that depends on the ratio of obj1Right and obj2Right.
         // This number is greater when the number of obj1 images the NeuralNetwork got right is similar to
         // the number of obj2 images it got right.
         // Use this function if you want the NeuralNetwork to learn to recognize obj1 and obj2 with a similar
@@ -570,7 +572,7 @@ public:
         double obj2Total = fitnessData[1][0];
         double obj2Right = fitnessData[1][1];
 
-        double ratio = std::max(0.5, std::min(obj1Right / (std::max(1.0, obj2Right)), obj2Right / (std::max(1.0, obj1Right))));
+        double ratio = 0.75 + 0.25 * std::min(obj1Right / (std::max(1.0, obj2Right)), obj2Right / (std::max(1.0, obj1Right)));
         double points = ratio * (obj1Right + obj2Right);
 
         return points;
@@ -665,7 +667,7 @@ public:
 
                 // Define the getFitnessThreaded lambda function that will be executed in each thread.
                 auto getFitnessThreaded = [&](NeuralNetwork* nn, int index) {
-                    double points = fitnessBasic(nn, path1, path2);
+                    double points = fitnessEqual(nn, path1, path2);
                     std::lock_guard<std::mutex> lock(mutex);
                     networkPoints[index] = points;
                 };
@@ -683,7 +685,7 @@ public:
 
             } else {
                 for (NeuralNetwork* nn : networkVector) {
-                    networkPoints.push_back(fitnessBasic(nn, path1, path2));
+                    networkPoints.push_back(fitnessEqual(nn, path1, path2));
                 }
             }
 

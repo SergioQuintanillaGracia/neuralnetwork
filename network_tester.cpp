@@ -7,16 +7,19 @@ void printResult(std::vector<double> vec);
 
 int main() {
     // Create the layers of the neural network.
-    std::vector<int> input = {64, 32, 1};
+    std::vector<int> layers = {144, 100, 60, 1};
 
     // Create the NeuralNetwork and GeneticNetworkTrainer objects.
-    NeuralNetwork* neuralNetwork = new NeuralNetwork(input, "./networks/squares_circles_8x8/64_32_1/progress/fitnessBasic/gen8799.weights", "./networks/squares_circles_8x8/64_32_1/progress/fitnessBasic/gen8799.bias");
-    GeneticNetworkTrainer trainer(neuralNetwork, "./networks/squares_circles_8x8/64_32_1", 0.05, 0.05, 18);
+    std::string basePath = "./networks/squares_circles_12x12/144_100_60_1";
+    std::string pointsPath = "404";
+    NeuralNetwork* neuralNetwork = new NeuralNetwork(layers, basePath + "/progress/" + pointsPath + ".weights", basePath + "/progress/" + pointsPath + ".bias");
+    GeneticNetworkTrainer trainer(neuralNetwork, basePath, 0.02, 0.02, 18);
 
+    bool validate = false;
     std::string obj1 = "Circle";
-    std::string path1 = "./training/circles8x8/";
+    std::string path1 = validate ? "./training/circles12x12_validation/" : "./training/circles12x12/";
     std::string obj2 = "Square";
-    std::string path2 = "./training/squares8x8/";
+    std::string path2 = validate ? "./training/squares12x12_validation/" : "./training/squares12x12/";
 
     std::cout << trainer.getAccuracyString(obj1, path1, obj2, path2) << std::endl;
 }
