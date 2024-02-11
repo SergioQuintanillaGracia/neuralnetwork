@@ -33,3 +33,4 @@
 
 # Directories
 training/*
+!training/*.py
