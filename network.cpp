@@ -561,9 +561,24 @@ public:
 
     double fitnessBasic(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
         // Returns the sum of the total images the NeuralNetwork got right.
-        std::vector<std::vector<int>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
+        std::vector<std::vector<double>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
 
-        return fitnessData[0][1] + fitnessData[1][1];
+        int right1 = 0;
+        int right2 = 0;
+
+        for (double d : fitnessData[0]) {
+            if (d <= 0.5) {
+                right1++;
+            }
+        }
+
+        for (double d : fitnessData[1]) {
+            if (d > 0.5) {
+                right2++;
+            }
+        }
+
+        return right1 + right2;
     }
 
     double fitnessEqual(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
@@ -573,43 +588,80 @@ public:
         // the number of obj2 images it got right.
         // Use this function if you want the NeuralNetwork to learn to recognize obj1 and obj2 with a similar
         // precission.
-        std::vector<std::vector<int>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
+        std::vector<std::vector<double>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
 
-        double obj1Total = fitnessData[0][0];
-        double obj1Right = fitnessData[0][1];
-        double obj2Total = fitnessData[1][0];
-        double obj2Right = fitnessData[1][1];
+        double right1 = 0;
+        double right2 = 0;
 
-        double ratio = 0.75 + 0.25 * std::min(obj1Right / (std::max(1.0, obj2Right)), obj2Right / (std::max(1.0, obj1Right)));
-        double points = ratio * (obj1Right + obj2Right);
+        for (double d : fitnessData[0]) {
+            if (d <= 0.5) {
+                right1++;
+            }
+        }
+
+        for (double d : fitnessData[1]) {
+            if (d > 0.5) {
+                right2++;
+            }
+        }
+
+        double ratio = 0.75 + 0.25 * std::min(right1 / (std::max(1.0, right2)), right2 / (std::max(1.0, right1)));
+        double points = ratio * (right1 + right2);
+
+        return points;
+    }
+
+    double fitnessPercentage(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
+        std::vector<std::vector<double>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
+
+        double points = 0;
+
+        for (double d : fitnessData[0]) {
+            // Give more points when the answer is closer to 0, in a quadrantic way.
+            points += (1 - d) * (1 - d);
+        }
+
+        for (double d : fitnessData[1]) {
+            // Give more points when the answer is closer to 1, in a quadrantic way.
+            points += d * d;
+        }
 
         return points;
     }
 
     std::string getAccuracyString(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int imageLimit = -1) {
-        std::vector<std::vector<int>> fitnessData = getFitnessData(baseNetwork, path1, path2, imageLimit);
+        std::vector<std::vector<double>> fitnessData = getFitnessData(baseNetwork, path1, path2, imageLimit);
 
-        double obj1Total = fitnessData[0][0];
-        double obj1Right = fitnessData[0][1];
-        double obj2Total = fitnessData[1][0];
-        double obj2Right = fitnessData[1][1];
+        double right1 = 0;
+        double right2 = 0;
 
-        std::string accuracyString = obj1 + ": " + std::to_string(obj1Right / obj1Total * 100) + "% | " + obj2 + ": "
-                                     + std::to_string(obj2Right / obj2Total * 100) + "% | General Accuracy: "
-                                     + std::to_string((obj1Right + obj2Right) / (obj1Total + obj2Total) * 100) + "%";
+        for (double d : fitnessData[0]) {
+            if (d <= 0.5) {
+                right1++;
+            }
+        }
+
+        for (double d : fitnessData[1]) {
+            if (d > 0.5) {
+                right2++;
+            }
+        }
+
+        std::string accuracyString = obj1 + ": " + std::to_string(right1 / fitnessData[0].size() * 100) + "% | " + obj2 + ": "
+                                     + std::to_string(right2 / fitnessData[1].size() * 100) + "% | General Accuracy: "
+                                     + std::to_string((right1 + right2) / (fitnessData[0].size() + fitnessData[1].size()) * 100) + "%";
 
         return accuracyString;
     }
     
-    std::vector<std::vector<int>> getFitnessData(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
+    std::vector<std::vector<double>> getFitnessData(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
         // Returns a vector with the following structure:
-        // {{checkedSamples1, rightSamples1}, {checkedSamples2, rightSamples2}}
-        std::vector<std::vector<int>> sampleData;
+        // {{obj1img1result, obj2img2result, ...}, {obj2img1.result, obj2img2.result, ...}}
+        std::vector<std::vector<double>> sampleData;
 
         // Test against object 1 images.
         std::vector<std::string> paths1 = getFiles(path1);
-
-        int rightSamples1 = 0;
+        std::vector<double> dataObj1;
         int checkedSamples1 = 0;
 
         // If imageLimit is greater than 0, imageLimit images.
@@ -617,11 +669,7 @@ public:
             if (imageLimit < 0 || checkedSamples1 < imageLimit) {
                 std::vector<double> input = extractBrightness(imagePath);
                 double result = network->compute(input)[0];
-
-                if (result <= 0.5) {
-                    // The neural network correctly identified the object.
-                    rightSamples1++;
-                }
+                dataObj1.push_back(result);
             } else {
                 break;
             }
@@ -629,13 +677,12 @@ public:
             checkedSamples1++;
         }
 
-        std::vector<int> sampleData1 = {checkedSamples1, rightSamples1};
-        sampleData.push_back(sampleData1);
+        sampleData.push_back(dataObj1);
 
         // Test against object 2 images.
         std::vector<std::string> paths2 = getFiles(path2);
+        std::vector<double> dataObj2;
 
-        int rightSamples2 = 0;
         int checkedSamples2 = 0;
 
         // If imageLimit is greater than 0, imageLimit images.
@@ -643,11 +690,7 @@ public:
             if (imageLimit < 0 || checkedSamples2 < imageLimit) {
                 std::vector<double> input = extractBrightness(imagePath);
                 double result = network->compute(input)[0];
-
-                if (result > 0.5) {
-                    // The neural network correctly identified the object.
-                    rightSamples2++;
-                }
+                dataObj2.push_back(result);
             } else {
                 break;
             }
@@ -655,8 +698,7 @@ public:
             checkedSamples2++;
         }
 
-        std::vector<int> sampleData2 = {checkedSamples2, rightSamples2};
-        sampleData.push_back(sampleData2);
+        sampleData.push_back(dataObj2);
 
         return sampleData;
     }
@@ -689,7 +731,7 @@ public:
 
                 // Define the getFitnessThreaded lambda function that will be executed in each thread.
                 auto getFitnessThreaded = [&](NeuralNetwork* nn, int index) {
-                    double points = fitnessBasic(nn, path1, path2, imageLimit);
+                    double points = fitnessPercentage(nn, path1, path2, imageLimit);
                     std::lock_guard<std::mutex> lock(mutex);
                     networkPoints[index] = points;
                 };
@@ -707,7 +749,7 @@ public:
 
             } else {
                 for (NeuralNetwork* nn : networkVector) {
-                    networkPoints.push_back(fitnessBasic(nn, path1, path2, imageLimit));
+                    networkPoints.push_back(fitnessPercentage(nn, path1, path2, imageLimit));
                 }
             }
 

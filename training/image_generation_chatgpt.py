@@ -11,7 +11,7 @@ import random
 import hashlib
 
 # Target resolution for the output images
-target_res = 8  # or 16, depending on your needs
+target_res = 16
 
 def generate_shapes(shape, number_of_images):
     base_path = os.path.join(os.getcwd(), "training", shape + f"{target_res}x{target_res}")
@@ -36,6 +36,14 @@ def generate_shapes(shape, number_of_images):
             offset_y = random.randint(radius + 1, high_res - radius - 1)
             shape_outline = [offset_x - radius, offset_y - radius, offset_x + radius, offset_y + radius]
             draw.ellipse(shape_outline, outline='white', fill='white')
+        
+        elif shape == 'empty_circles':
+            radius = random.randint(high_res // 8, high_res // 4)
+            offset_x = random.randint(radius + 1, high_res - radius - 1)
+            offset_y = random.randint(radius + 1, high_res - radius - 1)
+            shape_outline = [offset_x - radius, offset_y - radius, offset_x + radius, offset_y + radius]
+            outline_width = int(high_res / target_res)
+            draw.ellipse(shape_outline, outline='white', width=outline_width)  # Only draw the outline
 
         # Resize the image to target resolution with antialiasing
         img = img.resize((target_res, target_res), Image.LANCZOS)
@@ -47,8 +55,8 @@ def generate_shapes(shape, number_of_images):
 # Adjust the number of images if needed
 number_of_images_per_shape = 2040
 
-generate_shapes('squares', number_of_images_per_shape)
 generate_shapes('circles', number_of_images_per_shape)
+generate_shapes('empty_circles', number_of_images_per_shape)
 
 print("Images generated successfully.")
 
@@ -84,9 +92,9 @@ def find_and_remove_duplicates(folder_path):
 
 print ("Removing duplicate images...")
 
-folder_path = os.path.join(os.getcwd(), "training", "squares" + f"{target_res}x{target_res}")
-find_and_remove_duplicates(folder_path)
 folder_path = os.path.join(os.getcwd(), "training", "circles" + f"{target_res}x{target_res}")
+find_and_remove_duplicates(folder_path)
+folder_path = os.path.join(os.getcwd(), "training", "empty_circles" + f"{target_res}x{target_res}")
 find_and_remove_duplicates(folder_path)
 
 print("Duplicate images removed.")
