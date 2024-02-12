@@ -14,8 +14,8 @@
 
 
 class Neuron {
-    double value;
     double bias;
+    double value;
 
 public:
     Neuron(double b = 0) : bias(b) {};
@@ -112,7 +112,7 @@ public:
         }
 
         // Set initial values to the neurons of the layer.
-        for (size_t i = 0; i < neuronAmount; i++) {
+        for (int i = 0; i < neuronAmount; i++) {
             neurons[i].setValue(initialValues[i]);
         }
     }
@@ -124,7 +124,6 @@ public:
             return;
         }
 
-        // Set the values of the neurons of this layer to 0.
         for (Neuron& n : neurons) {
             n.setValue(0);
         }
@@ -136,7 +135,7 @@ public:
         for (size_t i = 0; i < prevNeuronAmount; i++) {
             Neuron& prevNeuron = prevNeurons[i];
 
-            // Iterate through every BEFOREweight and neuron of the current layer.
+            // Iterate through every weight and neuron of the current layer.
             for (size_t j = 0; j < neuronAmount; j++) {
                 double weight = weights[j + i * neuronAmount];
                 neurons[j].setValue(neurons[j].getValue() + prevNeuron.getValue() * weight);
@@ -488,6 +487,18 @@ public:
         // Return the computed values.
         return outputLayer->getValues();
     }
+
+    void printNeuronsData() {
+        Layer* currLayer = inputLayer;
+
+        while (currLayer != nullptr) {
+            for (double d : currLayer->getValues()) {
+                std::cout << d << ", ";
+            }
+            std::cout << std::endl;
+            currLayer = currLayer->next;
+        }
+    }
 };
 
 
@@ -498,24 +509,28 @@ class GeneticNetworkTrainer {
     double biasMutationAmount;
     int mutationsPerGen;
 
-    std::vector<std::vector<double>> mutateVector(std::vector<std::vector<double>>& vec, double mutationAmount) {
+    std::vector<std::vector<double>> mutateVector(std::vector<std::vector<double>>& vec, double mutationAmount, double rangeRandomness) {
         std::vector<std::vector<double>> mutatedVec;
 
         // Set up a time based seed and a random number generator.
         unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
         std::mt19937 generator(seed);
 
+        // Get a random number using normal distribution, that will be used to increase the mutation range a random amount.
+        std::normal_distribution<double> randomRangeDistrib(0, rangeRandomness);
+        double extraRandomness = randomRangeDistrib(generator);
+
         for (std::vector<double>& currVec: vec) {
             std::vector<double> currMut;
 
             for (double& d : currVec) {
-
-                double lowerBound = d - mutationAmount;
-                double upperBound = d + mutationAmount;
+                // Define the lower and upper bounds of the random number, taking into account extraRandomness.
+                double lowerBound = d - mutationAmount - extraRandomness;
+                double upperBound = d + mutationAmount + extraRandomness;
 
                 std::uniform_real_distribution<double> distribution(lowerBound, upperBound);
 
-                // Push back a randomly generated number, centered at the original vector double.
+                // Push back a randomly generated number with an uniform distribution.
                 currMut.push_back(distribution(generator));
             }
 
@@ -525,12 +540,12 @@ class GeneticNetworkTrainer {
         return mutatedVec;
     }
 
-    NeuralNetwork* mutate() {
+    NeuralNetwork* mutate(double rangeRandomness) {
         // Returns a mutated version of baseNetwork.
 
         // Get the mutated versions of the weights and biases in vector form.
-        std::vector<std::vector<double>> mutatedWeights = mutateVector(baseNetwork->getWeightsVector(), weightMutationAmount);
-        std::vector<std::vector<double>> mutatedBiases = mutateVector(baseNetwork->getBiasesVector(), biasMutationAmount);
+        std::vector<std::vector<double>> mutatedWeights = mutateVector(baseNetwork->getWeightsVector(), weightMutationAmount, rangeRandomness);
+        std::vector<std::vector<double>> mutatedBiases = mutateVector(baseNetwork->getBiasesVector(), biasMutationAmount, rangeRandomness);
         
         // Create and return the mutated NeuralNetwork.
         std::vector<int> layers = baseNetwork->getNeuronsPerLayerVector();
@@ -544,21 +559,21 @@ public:
                           : baseNetwork(baseNet), trainPath(tPath), weightMutationAmount(wMutation), biasMutationAmount(bMutation),
                             mutationsPerGen(mutations) {};
 
-    double fitnessBasic(NeuralNetwork* network, const std::string& path1, const std::string& path2) {
+    double fitnessBasic(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
         // Returns the sum of the total images the NeuralNetwork got right.
-        std::vector<std::vector<int>> fitnessData = getFitnessData(network, path1, path2);
+        std::vector<std::vector<int>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
 
         return fitnessData[0][1] + fitnessData[1][1];
     }
 
-    double fitnessEqual(NeuralNetwork* network, const std::string& path1, const std::string& path2) {
+    double fitnessEqual(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
         // Returns the sum of the total images the NeuralNetwork got right times a number between 0 and 1,
         // that depends on the ratio of obj1Right and obj2Right.
         // This number is greater when the number of obj1 images the NeuralNetwork got right is similar to
         // the number of obj2 images it got right.
         // Use this function if you want the NeuralNetwork to learn to recognize obj1 and obj2 with a similar
         // precission.
-        std::vector<std::vector<int>> fitnessData = getFitnessData(network, path1, path2);
+        std::vector<std::vector<int>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
 
         double obj1Total = fitnessData[0][0];
         double obj1Right = fitnessData[0][1];
@@ -571,8 +586,8 @@ public:
         return points;
     }
 
-    std::string getAccuracyString(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2) {
-        std::vector<std::vector<int>> fitnessData = getFitnessData(baseNetwork, path1, path2);
+    std::string getAccuracyString(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int imageLimit = -1) {
+        std::vector<std::vector<int>> fitnessData = getFitnessData(baseNetwork, path1, path2, imageLimit);
 
         double obj1Total = fitnessData[0][0];
         double obj1Right = fitnessData[0][1];
@@ -586,53 +601,67 @@ public:
         return accuracyString;
     }
     
-    std::vector<std::vector<int>> getFitnessData(NeuralNetwork* network, const std::string& path1, const std::string& path2) {
+    std::vector<std::vector<int>> getFitnessData(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
         // Returns a vector with the following structure:
-        // {{totalSamples1, rightSamples1}, {totalSamples2, rightSamples2}}
+        // {{checkedSamples1, rightSamples1}, {checkedSamples2, rightSamples2}}
         std::vector<std::vector<int>> sampleData;
 
         // Test against object 1 images.
         std::vector<std::string> paths1 = getFiles(path1);
 
-        int totalSamples1 = paths1.size();
         int rightSamples1 = 0;
+        int checkedSamples1 = 0;
 
-        for (std::string imagePath : paths1) {
-            std::vector<double> input = extractBrightness(imagePath);
-            double result = network->compute(input)[0];
+        // If imageLimit is greater than 0, imageLimit images.
+        for (std::string& imagePath : paths1) {
+            if (imageLimit < 0 || checkedSamples1 < imageLimit) {
+                std::vector<double> input = extractBrightness(imagePath);
+                double result = network->compute(input)[0];
 
-            if (result <= 0.5) {
-                // The neural network correctly identified the object.
-                rightSamples1++;
+                if (result <= 0.5) {
+                    // The neural network correctly identified the object.
+                    rightSamples1++;
+                }
+            } else {
+                break;
             }
+
+            checkedSamples1++;
         }
 
-        std::vector<int> sampleData1 = {totalSamples1, rightSamples1};
+        std::vector<int> sampleData1 = {checkedSamples1, rightSamples1};
         sampleData.push_back(sampleData1);
 
         // Test against object 2 images.
         std::vector<std::string> paths2 = getFiles(path2);
 
-        int totalSamples2 = paths2.size();
         int rightSamples2 = 0;
+        int checkedSamples2 = 0;
 
-        for (std::string imagePath : paths2) {
-            std::vector<double> input = extractBrightness(imagePath);
-            double result = network->compute(input)[0];
+        // If imageLimit is greater than 0, imageLimit images.
+        for (std::string& imagePath : paths2) {
+            if (imageLimit < 0 || checkedSamples2 < imageLimit) {
+                std::vector<double> input = extractBrightness(imagePath);
+                double result = network->compute(input)[0];
 
-            if (result > 0.5) {
-                // The neural network correctly identified the object.
-                rightSamples2++;
+                if (result > 0.5) {
+                    // The neural network correctly identified the object.
+                    rightSamples2++;
+                }
+            } else {
+                break;
             }
+
+            checkedSamples2++;
         }
 
-        std::vector<int> sampleData2 = {totalSamples2, rightSamples2};
+        std::vector<int> sampleData2 = {checkedSamples2, rightSamples2};
         sampleData.push_back(sampleData2);
 
         return sampleData;
     }
     
-    void trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int genLimit, bool multithread = false) {
+    void trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int genLimit, double rangeRandomness, bool multithread = true, int imageLimit = -1) {
         // Trains a network to distinguish between 2 objects.
         // Images of the first object are analised from path1, and images of the second object from path2.
         double prevMaxPoints = -1;
@@ -646,7 +675,7 @@ public:
             
             // Fill the networkVector with mutationsPerGen - 1 mutations of the base network.
             for (int i = 1; i < mutationsPerGen; i++) {
-                networkVector.push_back(mutate());
+                networkVector.push_back(mutate(rangeRandomness));
             }
 
 
@@ -660,7 +689,7 @@ public:
 
                 // Define the getFitnessThreaded lambda function that will be executed in each thread.
                 auto getFitnessThreaded = [&](NeuralNetwork* nn, int index) {
-                    double points = fitnessEqual(nn, path1, path2);
+                    double points = fitnessBasic(nn, path1, path2, imageLimit);
                     std::lock_guard<std::mutex> lock(mutex);
                     networkPoints[index] = points;
                 };
@@ -678,7 +707,7 @@ public:
 
             } else {
                 for (NeuralNetwork* nn : networkVector) {
-                    networkPoints.push_back(fitnessEqual(nn, path1, path2));
+                    networkPoints.push_back(fitnessBasic(nn, path1, path2, imageLimit));
                 }
             }
 

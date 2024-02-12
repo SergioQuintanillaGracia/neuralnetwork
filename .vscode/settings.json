@@ -60,6 +60,11 @@
         "mutex": "cpp",
         "semaphore": "cpp",
         "stop_token": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "cstring": "cpp",
+        "bitset": "cpp",
+        "list": "cpp",
+        "cinttypes": "cpp",
+        "__nullptr": "cpp"
     }
 }

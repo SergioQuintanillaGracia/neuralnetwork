@@ -7,19 +7,19 @@ void printResult(std::vector<double> vec);
 
 int main() {
     // Create the layers of the neural network.
-    std::vector<int> layers = {144, 100, 60, 1};
+    std::vector<int> layers = {64, 32, 1};
 
     // Create the NeuralNetwork and GeneticNetworkTrainer objects.
-    std::string basePath = "./networks/squares_circles_12x12/144_100_60_1";
-    std::string pointsPath = "0";
+    std::string basePath = "./networks/squares_circles_8x8/64_32_1";
+    std::string pointsPath = "1950_3000";
     NeuralNetwork* neuralNetwork = new NeuralNetwork(layers, basePath + "/progress/" + pointsPath + ".weights", basePath + "/progress/" + pointsPath + ".bias");
     GeneticNetworkTrainer trainer(neuralNetwork, basePath, 0.02, 0.02, 18);
 
-    bool validate = false;
+    bool validate = true;
     std::string obj1 = "Circle";
-    std::string path1 = validate ? "./training/circles12x12_validation/" : "./training/circles12x12/";
+    std::string path1 = validate ? "./training/circles8x8_validation/" : "./training/circles8x8/";
     std::string obj2 = "Square";
-    std::string path2 = validate ? "./training/squares12x12_validation/" : "./training/squares12x12/";
+    std::string path2 = validate ? "./training/squares8x8_validation/" : "./training/squares8x8/";
 
     std::cout << trainer.getAccuracyString(obj1, path1, obj2, path2) << std::endl;
 }
