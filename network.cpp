@@ -109,7 +109,9 @@ public:
         }
 
         // Reset current layer's neuron values.
-        std::fill(neurons.begin(), neurons.end(), 0);
+        for (Neuron& n : neurons) {
+            n.value = 0;
+        }
 
         // Iterate through every neuron of the previous layer.
         for (size_t i = 0; i < prev->neuronAmount; i++) {
