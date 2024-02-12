@@ -638,43 +638,42 @@ public:
         // {{obj1img1result, obj2img2result, ...}, {obj2img1.result, obj2img2.result, ...}}
         std::vector<std::vector<double>> sampleData;
 
-        // Test against object 1 images.
-        std::vector<std::string> paths1 = getFiles(path1);
+        // Test against object 1 images:
+        std::vector<std::string> paths1 = getFiles(path1, true);
+
+        // Calculate how many images the NeuralNetwork should be tested with.
+        // The limit will be set to imageLimit if imageLimit is > 0. If it's greater or equal
+        // than the number of images, or negative, every image will be checked.
+        int limit1 = imageLimit > 0 ? (imageLimit > paths1.size() ? paths1.size() : imageLimit) : paths1.size();
+
         std::vector<double> dataObj1;
-        int checkedSamples1 = 0;
+        dataObj1.reserve(limit1);
 
         // If imageLimit is greater than 0, imageLimit images.
-        for (std::string& imagePath : paths1) {
-            if (imageLimit < 0 || checkedSamples1 < imageLimit) {
-                std::vector<double> input = extractBrightness(imagePath);
-                double result = network->compute(input)[0];
-                dataObj1.push_back(result);
-            } else {
-                break;
-            }
-
-            checkedSamples1++;
+        for (int i = 0; i < limit1; i++) {
+            std::vector<double> input = extractBrightness(paths1[i]);
+            double result = network->compute(input)[0];
+            dataObj1.push_back(result);
         }
 
         sampleData.push_back(dataObj1);
 
-        // Test against object 2 images.
-        std::vector<std::string> paths2 = getFiles(path2);
-        std::vector<double> dataObj2;
+        // Test against object 2 images:
+        std::vector<std::string> paths2 = getFiles(path2, true);
 
-        int checkedSamples2 = 0;
+        // Calculate how many images the NeuralNetwork should be tested with.
+        // The limit will be set to imageLimit if imageLimit is > 0. If it's greater or equal
+        // than the number of images, or negative, every image will be checked.
+        int limit2 = imageLimit > 0 ? (imageLimit > paths2.size() ? paths2.size() : imageLimit) : paths2.size();
+
+        std::vector<double> dataObj2;
+        dataObj2.reserve(limit2);
 
         // If imageLimit is greater than 0, imageLimit images.
-        for (std::string& imagePath : paths2) {
-            if (imageLimit < 0 || checkedSamples2 < imageLimit) {
-                std::vector<double> input = extractBrightness(imagePath);
-                double result = network->compute(input)[0];
-                dataObj2.push_back(result);
-            } else {
-                break;
-            }
-
-            checkedSamples2++;
+        for (int i = 0; i < limit2; i++) {
+            std::vector<double> input = extractBrightness(paths2[i]);
+            double result = network->compute(input)[0];
+            dataObj2.push_back(result);
         }
 
         sampleData.push_back(dataObj2);
@@ -685,6 +684,15 @@ public:
     void trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int genLimit, double rangeRandomness, bool multithread = true, int imageLimit = -1) {
         // Trains a network to distinguish between 2 objects.
         // Images of the first object are analised from path1, and images of the second object from path2.
+
+        // Initialize the cache of files and images before any multithreaded operations to prevent race conditions.
+        initializeFilesCache(path1);
+        initializeFilesCache(path2);
+        std::cout << "Files cache initialized\n";
+        initializeImageCache(getFiles(path1, true));
+        initializeImageCache(getFiles(path2, true));
+        std::cout << "Image cache initialized\n";
+
         double prevMaxPoints = -1;
 
         for (int gen = 1; gen <= genLimit; gen++) {
@@ -769,7 +777,7 @@ public:
                 prevMaxPoints = maxPoints;
             }
 
-            std::cout << "Gen " << gen << " best points: " << maxPoints << std::endl;
+            std::cout << "Gen " << gen << " best points: " << maxPoints << '\n';
         }
     }
 }; 

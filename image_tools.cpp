@@ -1,10 +1,20 @@
 #define STB_IMAGE_IMPLEMENTATION
 
 #include <iostream>
+#include <unordered_map>
 #include <vector>
 #include "libraries/stb_image.h"
 
+std::unordered_map<std::string, std::vector<double>> imageCache;
+
 std::vector<double> extractBrightness(const std::string& imagePath) {
+    // Check if the image has already been processed.
+    auto it = imageCache.find(imagePath);
+    if (it != imageCache.end()) {
+        // The image is cached, return its brightness values.
+        return it->second;
+    }
+
     // Returns a vector with the brightness values of each pixel of the image.
     // Load the image, width, height, and channels.
     int width, height, channels;
@@ -26,5 +36,17 @@ std::vector<double> extractBrightness(const std::string& imagePath) {
 
     // Free the memory allocated by using stbi_load.
     stbi_image_free(img);
+
+    // Cache the results.
+    imageCache[imagePath] = brightnessValues;
+
     return brightnessValues;
+}
+
+void initializeImageCache(const std::vector<std::string>& paths) {
+    // This function must be called for every path where training images are, BEFORE
+    // any multithreaded operations.
+    for (const std::string& path : paths) {
+        extractBrightness(path);
+    }
 }

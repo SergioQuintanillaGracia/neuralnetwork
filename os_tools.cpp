@@ -1,7 +1,10 @@
 #include <iostream>
 #include <filesystem>
+#include <unordered_map>
 
 namespace fs = std::filesystem;
+
+static std::unordered_map<std::string, std::vector<std::string>> filesCache;
 
 void makeDir(const std::string& path) {
     // Create the directories.
@@ -10,7 +13,17 @@ void makeDir(const std::string& path) {
     }
 }
 
-std::vector<std::string> getFiles(const std::string& path) {
+std::vector<std::string> getFiles(const std::string& path, bool useCache = false) {
+
+    if (useCache) {
+        auto it = filesCache.find(path);
+
+        if (it != filesCache.end()) {
+            // The path has been found in the cache, return it.
+            return it->second;
+        }
+    }
+
     std::vector<std::string> paths;
 
     for (const auto& entry : fs::directory_iterator(path)) {
@@ -20,5 +33,14 @@ std::vector<std::string> getFiles(const std::string& path) {
         }
     }
 
+    if (useCache) {
+        // Cache the results.
+        filesCache[path] = paths;
+    }
+
     return paths;
+}
+
+void initializeFilesCache(std::string& path) {
+    getFiles(path, true);
 }
