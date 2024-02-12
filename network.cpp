@@ -14,27 +14,11 @@
 
 
 class Neuron {
-    double bias;
-    double value;
-
 public:
+    double value;
+    double bias;
+
     Neuron(double b = 0) : bias(b) {};
-
-    void setValue(double newValue) {
-        value = newValue;
-    }
-
-    double getValue() {
-        return value;
-    }
-
-    void setBias(double newBias) {
-        bias = newBias;
-    }
-
-    double getBias() {
-        return bias;
-    }
 
     void sigmoidActivation() {
         // Apply the bias.
@@ -100,7 +84,7 @@ public:
 
         // Set the bias value to each neuron of the layer.
         for (size_t i = 0; i < neurons.size(); i++) {
-            neurons[i].setBias(b[i]);
+            neurons[i].bias = b[i];
         }
     }
 
@@ -113,7 +97,7 @@ public:
 
         // Set initial values to the neurons of the layer.
         for (int i = 0; i < neuronAmount; i++) {
-            neurons[i].setValue(initialValues[i]);
+            neurons[i].value = initialValues[i];
         }
     }
 
@@ -124,32 +108,23 @@ public:
             return;
         }
 
-        for (Neuron& n : neurons) {
-            n.setValue(0);
-        }
-
-        int prevNeuronAmount = prev->neuronAmount;
-        std::vector<Neuron>& prevNeurons = prev->neurons;
+        // Reset current layer's neuron values.
+        std::fill(neurons.begin(), neurons.end(), 0);
 
         // Iterate through every neuron of the previous layer.
-        for (size_t i = 0; i < prevNeuronAmount; i++) {
-            Neuron& prevNeuron = prevNeurons[i];
+        for (size_t i = 0; i < prev->neuronAmount; i++) {
+            double prevNeuronValue = prev->neurons[i].value;
 
             // Iterate through every weight and neuron of the current layer.
             for (size_t j = 0; j < neuronAmount; j++) {
-                double weight = weights[j + i * neuronAmount];
-                neurons[j].setValue(neurons[j].getValue() + prevNeuron.getValue() * weight);
+                neurons[j].value += prevNeuronValue * weights[j + i * neuronAmount];
             }
         }
 
-        if (prev != nullptr && next != nullptr) {
-            // Apply the ReLU activation function if it is a hidden layer.
-            for (Neuron& n : neurons) {
+        for (Neuron& n : neurons) {
+            if (next != nullptr) {
                 n.reluActivation();
-            }
-        } else if (next == nullptr) {
-            // This is the output layer. Apply the sigmoid activation function.
-            for (Neuron& n : neurons) {
+            } else {
                 n.sigmoidActivation();
             }
         }
@@ -158,9 +133,10 @@ public:
     std::vector<double> getValues() {
         // Returns a vector containing the values of every neuron in this layer.
         std::vector<double> values;
+        values.reserve(neurons.size());
 
         for (Neuron& n : neurons) {
-            values.push_back(n.getValue());
+            values.push_back(n.value);
         }
 
         return values;
@@ -385,12 +361,13 @@ public:
         assignBiases();
     }
 
-    NeuralNetwork(std::vector<int>& nPerLayer, std::vector<std::vector<double>>& weightsVec, std::vector<std::vector<double>>& biasesVec)
+    NeuralNetwork(std::vector<int>& nPerLayer, std::vector<std::vector<double>>&& weightsVec, std::vector<std::vector<double>>&& biasesVec)
                   : neuronsPerLayer(nPerLayer) {
+        // This constructor will move weightsVec and biasesVec for optimization purposes.
         initializeLayers();
 
-        weights = weightsVec;
-        biases = biasesVec;
+        weights = std::move(weightsVec);
+        biases = std::move(biasesVec);
 
         assignWeights();
         assignBiases();
@@ -472,7 +449,7 @@ public:
         return neuronsPerLayer;
     }
 
-    std::vector<double> compute(std::vector<double> input) {
+    std::vector<double> compute(std::vector<double>& input) {
         // Load the input vector to the input layer.
         inputLayer->setInitialValues(input);
 
@@ -511,6 +488,7 @@ class GeneticNetworkTrainer {
 
     std::vector<std::vector<double>> mutateVector(std::vector<std::vector<double>>& vec, double mutationAmount, double rangeRandomness) {
         std::vector<std::vector<double>> mutatedVec;
+        mutatedVec.reserve(vec.size());
 
         // Set up a time based seed and a random number generator.
         unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
@@ -520,18 +498,19 @@ class GeneticNetworkTrainer {
         std::normal_distribution<double> randomRangeDistrib(0, rangeRandomness);
         double extraRandomness = randomRangeDistrib(generator);
 
+        // Define the lower and upper bounds of the random number, taking into account extraRandomness.
+        double lowerBound = -mutationAmount - extraRandomness;
+        double upperBound = mutationAmount + extraRandomness;
+
+        std::uniform_real_distribution<double> distribution(lowerBound, upperBound);
+
         for (std::vector<double>& currVec: vec) {
             std::vector<double> currMut;
+            currMut.reserve(currVec.size());
 
             for (double& d : currVec) {
-                // Define the lower and upper bounds of the random number, taking into account extraRandomness.
-                double lowerBound = d - mutationAmount - extraRandomness;
-                double upperBound = d + mutationAmount + extraRandomness;
-
-                std::uniform_real_distribution<double> distribution(lowerBound, upperBound);
-
                 // Push back a randomly generated number with an uniform distribution.
-                currMut.push_back(distribution(generator));
+                currMut.push_back(distribution(generator) + d);
             }
 
             mutatedVec.push_back(currMut);
@@ -549,7 +528,7 @@ class GeneticNetworkTrainer {
         
         // Create and return the mutated NeuralNetwork.
         std::vector<int> layers = baseNetwork->getNeuronsPerLayerVector();
-        NeuralNetwork* mutatedNetwork = new NeuralNetwork(layers, mutatedWeights, mutatedBiases);
+        NeuralNetwork* mutatedNetwork = new NeuralNetwork(layers, std::move(mutatedWeights), std::move(mutatedBiases));
 
         return mutatedNetwork;
     }
