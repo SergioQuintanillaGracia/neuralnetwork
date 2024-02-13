@@ -66,5 +66,6 @@
         "list": "cpp",
         "cinttypes": "cpp",
         "__nullptr": "cpp"
-    }
+    },
+    "cmake.configureOnOpen": false
 }
