@@ -2,9 +2,10 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageTk
+import bindings
 
 # Configure scaling and theme
-scale = 1
+scale = 2
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("blue")
 ctk.set_window_scaling(scale)
@@ -30,9 +31,9 @@ model_img_rel_pos_x = 0.27
 model_img_rel_pos_y = 0.45
 
 # Font definitions
-large_font = ctk.CTkFont(family="Arial", size=30, weight="bold")
-medium_font = ctk.CTkFont(family="Arial", size=20, weight="bold")
-small_font = ctk.CTkFont(family="Arial", size=15, weight="bold")
+large_font = ctk.CTkFont(family="Arial", size=int(30/scale), weight="bold")
+medium_font = ctk.CTkFont(family="Arial", size=int(20/scale), weight="bold")
+small_font = ctk.CTkFont(family="Arial", size=int(15/scale), weight="bold")
 
 # Define the tabview and add the tabs
 tabview = ctk.CTkTabview(master=app, corner_radius=10, border_width=0)
@@ -50,7 +51,7 @@ def get_model_name_list():
 def load_current_model_data():
     # Open the model file, read the data, and store it in variables
     print("Loaded data of model: " + current_model)
-
+    print(bindings.add(2, 4))
 
 # MODEL TAB FUNCTIONS
 def model_optionmenu_func(choice):
@@ -58,6 +59,7 @@ def model_optionmenu_func(choice):
     current_model = choice
     load_current_model_data()
     print("Switched to model: " + choice)
+    
 
 def model_select_image():
     global model_image_label
@@ -85,6 +87,12 @@ model_image_label.place(relx=model_img_rel_pos_x, rely=model_img_rel_pos_y, anch
 
 model_predictions_label = ctk.CTkLabel(master=tabview.tab(model_tab_name), text="MODEL PREDICTIONS", font=large_font)
 model_predictions_label.place(relx=0.756, rely=0.2, anchor=ctk.CENTER)
+
+model_obj_1_label = ctk.CTkLabel(master=tabview.tab(model_tab_name), text="Object 1: ___%", font=medium_font)
+model_obj_1_label.place(relx=0.756, rely=0.4, anchor=ctk.CENTER)
+
+model_obj_2_label = ctk.CTkLabel(master=tabview.tab(model_tab_name), text="Object 2: ___%", font=medium_font)
+model_obj_2_label.place(relx=0.756, rely=0.6, anchor=ctk.CENTER)
 
 
 # TRAIN TAB FUNCTIONS

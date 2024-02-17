@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 // TODO: Create and import header files for image_tools and network.
-#include "network.cpp"
+#include "network.h"
 
 void printResult(std::vector<double> vec);
 

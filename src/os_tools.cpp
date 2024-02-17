@@ -1,10 +1,8 @@
 #include <iostream>
 #include <filesystem>
+#include <vector>
 #include <unordered_map>
-
-namespace fs = std::filesystem;
-
-static std::unordered_map<std::string, std::vector<std::string>> filesCache;
+#include "os_tools.h"
 
 void makeDir(const std::string& path) {
     // Create the directories.
@@ -13,7 +11,7 @@ void makeDir(const std::string& path) {
     }
 }
 
-std::vector<std::string> getFiles(const std::string& path, bool useCache = false) {
+std::vector<std::string> getFiles(const std::string& path, bool useCache) {
 
     if (useCache) {
         auto it = filesCache.find(path);

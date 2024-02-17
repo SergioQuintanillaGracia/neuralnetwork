@@ -3,6 +3,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+#include "image_tools.h"
 #include "libraries/stb_image.h"
 
 std::unordered_map<std::string, std::vector<double>> imageCache;

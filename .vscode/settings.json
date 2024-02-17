@@ -65,7 +65,14 @@
         "bitset": "cpp",
         "list": "cpp",
         "cinttypes": "cpp",
-        "__nullptr": "cpp"
+        "__nullptr": "cpp",
+        "complex": "cpp",
+        "forward_list": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "unordered_set": "cpp",
+        "typeindex": "cpp",
+        "valarray": "cpp"
     },
     "cmake.configureOnOpen": false
 }

@@ -1,13 +1,16 @@
 {
     "tasks": [
         {
-            "type": "cppbuild",
+            "type": "shell",
             "label": "C/C++: g++ build active file",
             "command": "/usr/bin/g++",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
                 "${file}",
+                "${workspaceFolder}/src/network.cpp",
+                "${workspaceFolder}/src/os_tools.cpp",
+                "${workspaceFolder}/src/image_tools.cpp",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}"
             ],

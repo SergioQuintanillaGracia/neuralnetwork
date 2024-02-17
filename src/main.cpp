@@ -1,7 +1,6 @@
 #include <iostream>
 #include <vector>
-// TODO: Create and import header files for image_tools and network.
-#include "network.cpp"
+#include "network.h"
 
 void printResult(std::vector<double> vec);
 
@@ -14,7 +13,7 @@ int main() {
     std::string pointsPath = "356.481_400";
     NeuralNetwork* neuralNetwork = new NeuralNetwork(layers, basePath + "/progress/" + pointsPath + ".weights", basePath + "/progress/" + pointsPath + ".bias", false);
     
-    GeneticNetworkTrainer trainer(neuralNetwork, basePath, 0, 0, 22);
+    GeneticNetworkTrainer trainer(neuralNetwork, basePath, 0, 0, 18);
 
     std::string obj1 = "Circle";
     std::string path1 = "../training/circles16x16/";
