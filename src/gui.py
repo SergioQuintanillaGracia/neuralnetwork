@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageTk
 import bindings
+import os
 
 # Configure scaling and theme
 scale = 2
@@ -18,10 +19,13 @@ app.title("NeuralNetwork GUI")
 
 # Variables
 current_model_name = None
-current_model_obj1 = None
-current_model_obj2 = None
+current_model_obj1_name = "Circle"          # Set manually, until it can be automatically loaded
+current_model_obj2_name = "Circumference"    # Set manually, until it can be automatically loaded
 
 model_image_label = None
+model_obj_1_label = None
+model_obj_2_label = None
+
 model_tab_name = "Model"
 train_tab_name = "Train"
 current_image_path = None
@@ -43,15 +47,16 @@ tabview.add(model_tab_name)
 tabview.add(train_tab_name)
 tabview.set(model_tab_name)
 
+# Load the model (temporary, until models can be selected)
+bindings.loadModel([256, 96, 48, 1], "./networks/circles_circumf_16x16/256_96_48_1/progress/2881.4_3000.weights", "./networks/circles_circumf_16x16/256_96_48_1/progress/2881.4_3000.bias")
 
 # NEURAL NETWORK FUNCTIONS (temporary at the moment)
 def get_model_name_list():
-    return ["model1", "model2", "model3 a;sldjf ;alsdjf l;kajsd f", "model4"]
+    return ["model1 (placeholder)", "model2 (placeholder)", "model 3 (placeholder)", "model4 (placeholder)"]
 
 def load_current_model_data():
     # Open the model file, read the data, and store it in variables
     print("Loaded data of model: " + current_model)
-    print(bindings.add(2, 4))
 
 # MODEL TAB FUNCTIONS
 def model_optionmenu_func(choice):
@@ -62,7 +67,7 @@ def model_optionmenu_func(choice):
     
 
 def model_select_image():
-    global model_image_label
+    global model_image_label, model_obj_1_label, model_obj_2_label
     file_path = filedialog.askopenfilename(title="Select an image", filetypes=[("Images", ("*.png", "*.jpg"))])
     current_image = file_path
     original_image = Image.open(current_image)
@@ -72,6 +77,11 @@ def model_select_image():
     model_image_label = ctk.CTkLabel(master=tabview.tab(model_tab_name), text="", image=img)
     model_image_label.place(relx=model_img_rel_pos_x, rely=model_img_rel_pos_y, anchor=ctk.CENTER)
     print("Loaded image: " + file_path)
+
+    # Get the model answer and set the percentages accordingly
+    model_answer = bindings.getModelAnswer(current_image)
+    model_obj_1_label.configure(text = current_model_obj1_name + ": " + str((1 - round(model_answer[0], 2)) * 100) + "%")
+    model_obj_2_label.configure(text = current_model_obj2_name + ": " + str(round(model_answer[0], 2) * 100) + "%")
 
 
 # MODEL TAB CODE
@@ -92,6 +102,7 @@ model_obj_1_label = ctk.CTkLabel(master=tabview.tab(model_tab_name), text="Objec
 model_obj_1_label.place(relx=0.756, rely=0.4, anchor=ctk.CENTER)
 
 model_obj_2_label = ctk.CTkLabel(master=tabview.tab(model_tab_name), text="Object 2: ___%", font=medium_font)
+
 model_obj_2_label.place(relx=0.756, rely=0.6, anchor=ctk.CENTER)
 
 

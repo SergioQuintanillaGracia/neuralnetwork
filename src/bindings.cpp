@@ -1,12 +1,36 @@
+#include <vector>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include "image_tools.h"
 #include "network.h"
+
+namespace py = pybind11;
+
+NeuralNetwork* neuralNetwork = nullptr;
 
 int add(int i, int j) {
     return i + j;
 }
 
-PYBIND11_MODULE(bindings, m) {
-    m.doc() = "pybind11 example plugin"; // optional module docstring
+void loadModel(std::vector<int> layers, std::string weightsPath, std::string biasesPath) {
+    if (neuralNetwork) {
+        delete neuralNetwork;
+        neuralNetwork = nullptr;
+    }
 
-    m.def("add", &add, "A function that adds two numbers");
+    std::string basePath = "../networks/circles_circumf_16x16/256_96_48_1";
+    std::string pointsPath = "2728.94_3000";
+    neuralNetwork = new NeuralNetwork(layers, weightsPath, biasesPath);
+}
+
+std::vector<double> getModelAnswer(std::string imagePath) {
+    std::vector<double> input = extractBrightness(imagePath);
+    return neuralNetwork->compute(input);
+}
+
+PYBIND11_MODULE(bindings, m) {
+    m.doc() = "NeuralNetwork Python bindings"; // optional module docstring
+
+    m.def("loadModel", &loadModel, "Load a model with specified layers, weights, and biases");
+    m.def("getModelAnswer", &getModelAnswer, "Get the model's answer for a given image path");
 }

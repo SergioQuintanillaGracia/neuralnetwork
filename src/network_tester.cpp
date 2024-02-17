@@ -11,11 +11,11 @@ int main() {
 
     // Create the NeuralNetwork and GeneticNetworkTrainer objects.
     std::string basePath = "../networks/circles_circumf_16x16/256_96_48_1";
-    std::string pointsPath = "2728.94_3000";
+    std::string pointsPath = "2881.4_3000";
     NeuralNetwork* neuralNetwork = new NeuralNetwork(layers, basePath + "/progress/" + pointsPath + ".weights", basePath + "/progress/" + pointsPath + ".bias");
     GeneticNetworkTrainer trainer(neuralNetwork, basePath, 0.02, 0.02, 18);
 
-    bool validate = false;
+    bool validate = true;
     std::string obj1 = "Circle";
     std::string path1 = validate ? "../training/circles16x16_validation/" : "../training/circles16x16/";
     std::string obj2 = "Circumference";
