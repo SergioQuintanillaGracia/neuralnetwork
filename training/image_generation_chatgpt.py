@@ -11,7 +11,7 @@ import random
 import hashlib
 
 # Target resolution for the output images
-target_res = 16
+target_res = 32
 
 def generate_shapes(shape, number_of_images):
     base_path = os.path.join(os.getcwd(), "training", shape + f"{target_res}x{target_res}")
@@ -53,10 +53,10 @@ def generate_shapes(shape, number_of_images):
 
 
 # Adjust the number of images if needed
-number_of_images_per_shape = 2040
+number_of_images_per_shape = 1010
 
 generate_shapes('circles', number_of_images_per_shape)
-generate_shapes('empty_circles', number_of_images_per_shape)
+generate_shapes('squares', number_of_images_per_shape)
 
 print("Images generated successfully.")
 

@@ -23,8 +23,8 @@ void loadModel(std::vector<int> layers, std::string weightsPath, std::string bia
     neuralNetwork = new NeuralNetwork(layers, weightsPath, biasesPath);
 }
 
-std::vector<double> getModelAnswer(std::string imagePath) {
-    std::vector<double> input = extractBrightness(imagePath);
+std::vector<double> getModelAnswer(std::string imagePath, bool useCache = false) {
+    std::vector<double> input = extractBrightness(imagePath, useCache);
     return neuralNetwork->compute(input);
 }
 

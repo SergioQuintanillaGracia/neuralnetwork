@@ -619,7 +619,7 @@ std::vector<std::vector<double>> GeneticNetworkTrainer::getFitnessData(NeuralNet
 
     // If imageLimit is greater than 0, imageLimit images.
     for (int i = 0; i < limit1; i++) {
-        std::vector<double> input = extractBrightness(paths1[i]);
+        std::vector<double> input = extractBrightness(paths1[i], true);
         double result = network->compute(input)[0];
         dataObj1.push_back(result);
     }
@@ -639,7 +639,7 @@ std::vector<std::vector<double>> GeneticNetworkTrainer::getFitnessData(NeuralNet
 
     // If imageLimit is greater than 0, imageLimit images.
     for (int i = 0; i < limit2; i++) {
-        std::vector<double> input = extractBrightness(paths2[i]);
+        std::vector<double> input = extractBrightness(paths2[i], true);
         double result = network->compute(input)[0];
         dataObj2.push_back(result);
     }

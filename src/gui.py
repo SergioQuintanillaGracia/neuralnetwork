@@ -14,7 +14,7 @@ ctk.set_widget_scaling(scale)
 
 # Create and configure the window
 app = ctk.CTk()
-app.geometry("1200x720")
+app.geometry("940x560")
 app.title("NeuralNetwork GUI")
 
 # Variables
@@ -29,15 +29,16 @@ model_obj_2_label = None
 model_tab_name = "Model"
 train_tab_name = "Train"
 current_image_path = None
-model_img_res_x = 550
-model_img_res_y = 550
-model_img_rel_pos_x = 0.27
+model_img_res_x = 380
+model_img_res_y = 380
+model_img_rel_pos_x = 0.263
 model_img_rel_pos_y = 0.45
 
 # Font definitions
-large_font = ctk.CTkFont(family="Arial", size=int(30/scale), weight="bold")
-medium_font = ctk.CTkFont(family="Arial", size=int(20/scale), weight="bold")
-small_font = ctk.CTkFont(family="Arial", size=int(15/scale), weight="bold")
+large_font = ctk.CTkFont(family="", size=int(30/scale), weight="bold")
+large_underlined_font = ctk.CTkFont(family="", size=int(30/scale), weight="bold", underline=True)
+medium_font = ctk.CTkFont(family="", size=int(20/scale), weight="bold")
+small_font = ctk.CTkFont(family="", size=int(15/scale), weight="bold")
 
 # Define the tabview and add the tabs
 tabview = ctk.CTkTabview(master=app, corner_radius=10, border_width=0)
@@ -79,15 +80,15 @@ def model_select_image():
     print("Loaded image: " + file_path)
 
     # Get the model answer and set the percentages accordingly
-    model_answer = bindings.getModelAnswer(current_image)
-    model_obj_1_label.configure(text = current_model_obj1_name + ": " + str((1 - round(model_answer[0], 2)) * 100) + "%")
-    model_obj_2_label.configure(text = current_model_obj2_name + ": " + str(round(model_answer[0], 2) * 100) + "%")
+    model_answer = bindings.getModelAnswer(current_image, False)
+    model_obj_1_label.configure(text = current_model_obj1_name + ": " + str(round((1 - model_answer[0]) * 100, 2)) + "%")
+    model_obj_2_label.configure(text = current_model_obj2_name + ": " + str(round(model_answer[0] * 100, 2)) + "%")
 
 
 # MODEL TAB CODE
 model_optionmenu_default_opt = ctk.StringVar(value="Select Model")
-model_optionmenu = ctk.CTkOptionMenu(master=tabview.tab(model_tab_name), width=300, height=34, font=small_font, values=get_model_name_list(), command=model_optionmenu_func, variable=model_optionmenu_default_opt)
-model_optionmenu.place(relx=0.192, rely=0.92, anchor=ctk.CENTER)
+model_optionmenu = ctk.CTkOptionMenu(master=tabview.tab(model_tab_name), width=260, height=34, font=small_font, values=get_model_name_list(), command=model_optionmenu_func, variable=model_optionmenu_default_opt)
+model_optionmenu.place(relx=0.172, rely=0.92, anchor=ctk.CENTER)
 
 model_select_image_button = ctk.CTkButton(master=tabview.tab(model_tab_name), width=150, height=34, text="Select Image", font=small_font, command=model_select_image)
 model_select_image_button.place(relx=0.41, rely=0.92, anchor=ctk.CENTER)
@@ -95,15 +96,15 @@ model_select_image_button.place(relx=0.41, rely=0.92, anchor=ctk.CENTER)
 model_image_label = ctk.CTkLabel(master=tabview.tab(model_tab_name), text="No image selected")
 model_image_label.place(relx=model_img_rel_pos_x, rely=model_img_rel_pos_y, anchor=ctk.CENTER)
 
-model_predictions_label = ctk.CTkLabel(master=tabview.tab(model_tab_name), text="MODEL PREDICTIONS", font=large_font)
+model_predictions_label = ctk.CTkLabel(master=tabview.tab(model_tab_name), text="MODEL PREDICTIONS", font=large_underlined_font)
 model_predictions_label.place(relx=0.756, rely=0.2, anchor=ctk.CENTER)
 
 model_obj_1_label = ctk.CTkLabel(master=tabview.tab(model_tab_name), text="Object 1: ___%", font=medium_font)
-model_obj_1_label.place(relx=0.756, rely=0.4, anchor=ctk.CENTER)
+model_obj_1_label.place(relx=0.756, rely=0.36, anchor=ctk.CENTER)
 
 model_obj_2_label = ctk.CTkLabel(master=tabview.tab(model_tab_name), text="Object 2: ___%", font=medium_font)
 
-model_obj_2_label.place(relx=0.756, rely=0.6, anchor=ctk.CENTER)
+model_obj_2_label.place(relx=0.756, rely=0.5, anchor=ctk.CENTER)
 
 
 # TRAIN TAB FUNCTIONS
