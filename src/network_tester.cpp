@@ -10,8 +10,8 @@ int main() {
     std::vector<int> layers = {256, 96, 48, 1};
 
     // Create the NeuralNetwork and GeneticNetworkTrainer objects.
-    std::string basePath = "../networks/circles_circumf_16x16/256_96_48_1";
-    std::string pointsPath = "2881.4_3000";
+    std::string basePath = "../networks/circles_circumf_16x16/256_96_48_1_mixed";
+    std::string pointsPath = "269_270";
     NeuralNetwork* neuralNetwork = new NeuralNetwork(layers, basePath + "/progress/" + pointsPath + ".weights", basePath + "/progress/" + pointsPath + ".bias");
     GeneticNetworkTrainer trainer(neuralNetwork, basePath, 0.02, 0.02, 18);
 

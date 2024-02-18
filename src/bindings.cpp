@@ -8,10 +8,6 @@ namespace py = pybind11;
 
 NeuralNetwork* neuralNetwork = nullptr;
 
-int add(int i, int j) {
-    return i + j;
-}
-
 void loadModel(std::vector<int> layers, std::string weightsPath, std::string biasesPath) {
     if (neuralNetwork) {
         delete neuralNetwork;

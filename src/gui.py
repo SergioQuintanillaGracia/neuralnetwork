@@ -49,7 +49,7 @@ tabview.add(train_tab_name)
 tabview.set(model_tab_name)
 
 # Load the model (temporary, until models can be selected)
-bindings.loadModel([256, 96, 48, 1], "./networks/circles_circumf_16x16/256_96_48_1/progress/2881.4_3000.weights", "./networks/circles_circumf_16x16/256_96_48_1/progress/2881.4_3000.bias")
+bindings.loadModel([256, 96, 48, 1], "./networks/circles_circumf_16x16/256_96_48_1_mixed/progress/269_270.weights", "./networks/circles_circumf_16x16/256_96_48_1_mixed/progress/269_270.bias")
 
 # NEURAL NETWORK FUNCTIONS (temporary at the moment)
 def get_model_name_list():

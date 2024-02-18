@@ -576,6 +576,50 @@ double GeneticNetworkTrainer::fitnessPercentage(NeuralNetwork* network, const st
     return points;
 }
 
+double GeneticNetworkTrainer::fitnessPercentageLinear(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
+    std::vector<std::vector<double>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
+
+    double points = 0;
+
+    for (double d : fitnessData[0]) {
+        // Give more points when the answer is closer to 0.
+        points += (1 - d);
+    }
+
+    for (double d : fitnessData[1]) {
+        // Give more points when the answer is closer to 1.
+        points += d;
+    }
+
+    return points;
+}
+
+double GeneticNetworkTrainer::fitnessPercentageHybrid(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
+    std::vector<std::vector<double>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
+
+    double points = 0;
+
+    for (double d : fitnessData[0]) {
+        if (d <= 0.5) {
+            points += 0.9;
+        }
+
+        // Give more points when the answer is closer to 0.
+        points += 0.1 * (1 - d);
+    }
+
+    for (double d : fitnessData[1]) {
+        if (d > 0.5) {
+            points += 0.9;
+        }
+
+        // Give more points when the answer is closer to 1.
+        points += 0.1 * d;
+    }
+
+    return points;
+}
+
 std::string GeneticNetworkTrainer::getAccuracyString(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int imageLimit) {
     std::vector<std::vector<double>> fitnessData = getFitnessData(baseNetwork, path1, path2, imageLimit);
 
@@ -649,8 +693,8 @@ std::vector<std::vector<double>> GeneticNetworkTrainer::getFitnessData(NeuralNet
     return sampleData;
 }
     
-void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2,
-                                        int genLimit, double rangeRandomness, bool multithread, int imageLimit) {
+void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int genLimit, double rangeRandomness,
+                                        double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int), bool multithread, int imageLimit) {
     // Trains a network to distinguish between 2 objects.
     // Images of the first object are analised from path1, and images of the second object from path2.
 
@@ -687,7 +731,7 @@ void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, s
 
             // Define the getFitnessThreaded lambda function that will be executed in each thread.
             auto getFitnessThreaded = [&](NeuralNetwork* nn, int index) {
-                double points = fitnessPercentage(nn, path1, path2, imageLimit);
+                double points = (this->*fitnessFunction)(nn, path1, path2, imageLimit);
                 std::lock_guard<std::mutex> lock(mutex);
                 networkPoints[index] = points;
             };
@@ -705,7 +749,7 @@ void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, s
 
         } else {
             for (NeuralNetwork* nn : networkVector) {
-                networkPoints.push_back(fitnessPercentage(nn, path1, path2, imageLimit));
+                networkPoints.push_back((this->*fitnessFunction)(nn, path1, path2, imageLimit));
             }
         }
 
