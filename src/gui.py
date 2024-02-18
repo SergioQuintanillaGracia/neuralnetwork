@@ -9,7 +9,7 @@ from threading import Thread
 import time
 
 # Configure scaling and theme
-scale = 2
+scale = 1
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("blue")
 ctk.set_window_scaling(scale)
@@ -55,7 +55,7 @@ small_font = ctk.CTkFont(family="", size=int(15/scale), weight="bold")
 smaller_font = ctk.CTkFont(family="", size=int(12/scale))
 
 # Define the tabview and add the tabs
-tabview = ctk.CTkTabview(master=app, corner_radius=0, border_width=0)
+tabview = ctk.CTkTabview(master=app, corner_radius=10, border_width=0)
 tabview._segmented_button.configure(font=medium_font)
 tabview.pack(expand=1, fill="both")
 tabview.add(use_model_tab_name)
@@ -175,13 +175,13 @@ train_select_obj1_images_button = ctk.CTkButton(master=tabview.tab(train_model_t
 train_select_obj1_images_button.place(relx=0.6, rely=0.06, anchor=ctk.CENTER)
 
 train_obj1_images_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="None selected", font=smaller_font, text_color="gray", height=10)
-train_obj1_images_label.place(relx=0.6, rely=0.11, anchor=ctk.CENTER)
+train_obj1_images_label.place(relx=0.6, rely=0.12, anchor=ctk.CENTER)
 
 train_select_obj2_images_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=150, height=34, text="Select obj2 images", font=small_font, command=train_select_obj2_image_path)
 train_select_obj2_images_button.place(relx=0.85, rely=0.06, anchor=ctk.CENTER)
 
 train_obj2_images_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="None selected", font=smaller_font, text_color="gray", height=10)
-train_obj2_images_label.place(relx=0.85, rely=0.11, anchor=ctk.CENTER)
+train_obj2_images_label.place(relx=0.85, rely=0.12, anchor=ctk.CENTER)
 
 train_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=120, height=34, text="Train", font=medium_font, command=train_model)
 train_button.place(relx=0.172, rely=0.92, anchor=ctk.CENTER)

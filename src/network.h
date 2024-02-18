@@ -69,6 +69,7 @@ public:
 
 class GeneticNetworkTrainer {
 private:
+    bool baseNetworkIsOriginal;
     NeuralNetwork* baseNetwork;
     std::string trainPath;
     double weightMutationAmount;

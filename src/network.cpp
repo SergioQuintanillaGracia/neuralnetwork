@@ -504,7 +504,7 @@ NeuralNetwork* GeneticNetworkTrainer::mutate(double rangeRandomness) {
 }
 
 GeneticNetworkTrainer::GeneticNetworkTrainer(NeuralNetwork* baseNet, const std::string& tPath, double wMutation, double bMutation, int mutations)
-                        : baseNetwork(baseNet), trainPath(tPath), weightMutationAmount(wMutation), biasMutationAmount(bMutation),
+                        : baseNetwork(baseNet), baseNetworkIsOriginal(true), trainPath(tPath), weightMutationAmount(wMutation), biasMutationAmount(bMutation),
                         mutationsPerGen(mutations) {};
 
 double GeneticNetworkTrainer::fitnessBasic(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
@@ -767,11 +767,16 @@ void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, s
 
     // If the best network is not the base network (with index 0), update baseNetwork.
     if (maxPointsIndex != 0) {
+        if (!baseNetworkIsOriginal) {
+            // If the base network is not the original, it must be deleted.
+            delete baseNetwork;
+        }
         baseNetwork = networkVector[maxPointsIndex];
+        baseNetworkIsOriginal = false;
     }
 
     // Delete the networks that aren't the best performer:
-    for (int i = 0; i < networkVector.size(); i++) {
+    for (int i = 1; i < networkVector.size(); i++) {
         if (i != maxPointsIndex) {
             delete networkVector[i];
         }
