@@ -790,6 +790,7 @@ void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, s
             prevMaxPoints = maxPoints;
         }
 
+        currentGen = gen;
         std::cout << "Gen " << gen << " best points: " << maxPoints << '\n';
     }
 }

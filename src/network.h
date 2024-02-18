@@ -79,6 +79,8 @@ private:
     NeuralNetwork* mutate(double rangeRandomness);
 
 public:
+    int currentGen = 0;
+
     GeneticNetworkTrainer(NeuralNetwork* baseNet, const std::string& tPath, double wMutation, double bMutation, int mutations);
 
     double fitnessBasic(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
