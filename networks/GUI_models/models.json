@@ -1,7 +1,7 @@
 {
   "circles_circumf_16x16": {
-    "obj1Name": "Círculo lleno",
-    "obj2Name": "Círculo vacío",
+    "obj1Name": "Full Circle",
+    "obj2Name": "Circumference",
     "layers": [256, 96, 48, 1],
     "weightsPath": "circles_circumf_16x16/default.weights",
     "biasesPath": "circles_circumf_16x16/default.bias"

@@ -5,7 +5,7 @@ from PIL import Image, ImageTk
 import bindings
 import os
 import json
-from multiprocessing import Process
+from threading import Thread
 import time
 
 # Configure scaling and theme
@@ -125,19 +125,25 @@ def train_select_obj2_image_path() -> None:
     train_obj2_images_label.configure(text=current_model_obj2_image_path.split('/')[-1])
 
 def train_model_loop() -> None:
-    bindings.trainModel(models_dir + current_model_name + "/training", 0, 0.1, 18, current_model_obj1_name, current_model_obj1_image_path,
-                        current_model_obj2_name, current_model_obj2_image_path, 100, 0.15, 5, True, -1)
+    global current_model_obj1_name, current_model_obj1_image_path, current_model_obj2_name, current_model_obj2_image_path
+    bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
+    bindings.initializeTrainer(models_dir + current_model_name + "/training", 0, 0.1, 18)
+    bindings.initializeCache(current_model_obj1_image_path, current_model_obj2_image_path)
+    generations: int = 5
 
-def update_gen_label() -> None:
+    for i in range(generations):
+        bindings.trainModel(current_model_obj1_name, current_model_obj1_image_path, current_model_obj2_name,
+                            current_model_obj2_image_path, 0.15, 5, i + 1, (i + 1) % 20 == 0, True, -1)
+        update_gen_label(i + 1, generations)
+
+def update_gen_label(gen: int, max_gen: int) -> None:
     global train_gen_label
-    train_gen_label.configure(text=bindings.getCurrentGen())
-    train_gen_label.after(200, update_gen_label)
+    train_gen_label.configure(text = str(gen) + " / " + str(max_gen))
 
 def train_model() -> None:
     print("Starting model training")
-    p = Process(target=train_model_loop)
-    p.start()
-    update_gen_label()
+    t = Thread(target=train_model_loop)
+    t.start()
 
 
 # MODEL TAB CODE

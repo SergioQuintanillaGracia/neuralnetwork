@@ -26,48 +26,55 @@ std::vector<double> getModelAnswer(std::string imagePath, bool useCache = false)
     return neuralNetwork->compute(input);
 }
 
-void trainModel(std::string& trainPath, double wMutation, double bMutation, int mutations, std::string& obj1,
-                std::string& path1, std::string& obj2, std::string& path2, int genLimit, double rangeRandomness,
-                int fitnessFunctionID, bool multithread = true, int imageLimit = -1) {
-    double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int);
+void initializeCache(std::string path1, std::string path2) {
+    if (trainer) {
+        trainer->initializeCache(path1, path2);
+    } else {
+        std::cerr << "Could not initialize cache, as no GeneticNetworkTrainer has been initialized yet.\n";
+    }
+}
 
+void initializeTrainer(std::string& trainPath, double wMutation, double bMutation, int mutations) {
     if (trainer) {
         delete trainer;
         trainer = nullptr;
     }
 
     trainer = new GeneticNetworkTrainer(neuralNetwork, trainPath, wMutation, bMutation, mutations);
-
-    switch (fitnessFunctionID) {
-        case 1:
-            fitnessFunction = &GeneticNetworkTrainer::fitnessBasic;
-            break;
-        case 2:
-            fitnessFunction = &GeneticNetworkTrainer::fitnessEqual;
-            break;
-        case 3:
-            fitnessFunction = &GeneticNetworkTrainer::fitnessPercentage;
-            break;
-        case 4:
-            fitnessFunction = &GeneticNetworkTrainer::fitnessPercentageLinear;
-            break;
-        case 5:
-            fitnessFunction = &GeneticNetworkTrainer::fitnessPercentageHybrid;
-            break;
-        default:
-            std::cerr << "Fitness function ID does not exist. Defaulting to fitnessPercentageHybrid\n";
-            fitnessFunction = &GeneticNetworkTrainer::fitnessPercentageHybrid;
-            break;
-    }
-
-    trainer->trainBinary(obj1, path1, obj2, path2, genLimit, rangeRandomness, fitnessFunction, true);
+    std::cout << "GeneticNetworkTrainer initialized\n";
 }
 
-int getCurrentGen() {
+void trainModel(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, double rangeRandomness,
+                int fitnessFunctionID, int currentGen, bool writeNetworkData, bool multithread = true, int imageLimit = -1) {
+    double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int);
+
     if (trainer) {
-        return trainer->currentGen;
+        switch (fitnessFunctionID) {
+            case 1:
+                fitnessFunction = &GeneticNetworkTrainer::fitnessBasic;
+                break;
+            case 2:
+                fitnessFunction = &GeneticNetworkTrainer::fitnessEqual;
+                break;
+            case 3:
+                fitnessFunction = &GeneticNetworkTrainer::fitnessPercentage;
+                break;
+            case 4:
+                fitnessFunction = &GeneticNetworkTrainer::fitnessPercentageLinear;
+                break;
+            case 5:
+                fitnessFunction = &GeneticNetworkTrainer::fitnessPercentageHybrid;
+                break;
+            default:
+                std::cerr << "Fitness function ID does not exist. Defaulting to fitnessPercentageHybrid\n";
+                fitnessFunction = &GeneticNetworkTrainer::fitnessPercentageHybrid;
+                break;
+        }
+
+        std::cout << "Before trainBinary\n";
+        trainer->trainBinary(obj1, path1, obj2, path2, rangeRandomness, fitnessFunction, currentGen, writeNetworkData, multithread, imageLimit);
     } else {
-        return -1;
+        std::cerr << "No trainer has been initialized. Run initializeTrainer() before training the model.\n";
     }
 }
 
@@ -76,6 +83,7 @@ PYBIND11_MODULE(bindings, m) {
 
     m.def("loadModel", &loadModel, "Load a model with specified layers, weights, and biases");
     m.def("getModelAnswer", &getModelAnswer, "Get the model's answer for a given image path");
+    m.def("initializeCache", &initializeCache, "Initialize image and files cache to avoid race conditions in multithreaded environments");
+    m.def("initializeTrainer", &initializeTrainer, "Initialize the trainer for the model.");
     m.def("trainModel", &trainModel, "Train a model");
-    m.def("getCurrentGen", &getCurrentGen, "Get the current generation of the training of the model");
 }

@@ -10,7 +10,7 @@ int main() {
 
     // Create the NeuralNetwork and GeneticNetworkTrainer objects.
     std::string basePath = "../networks/circles_circumf_16x16/256_96_48_1_mixed";
-    std::string pointsPath = "269_270";
+    std::string pointsPath = "test";
     NeuralNetwork* neuralNetwork = new NeuralNetwork(layers, basePath + "/progress/" + pointsPath + ".weights", basePath + "/progress/" + pointsPath + ".bias", false);
     
     GeneticNetworkTrainer trainer(neuralNetwork, basePath, 0, 0.1, 18);
@@ -19,7 +19,12 @@ int main() {
     std::string path1 = "../training/circles16x16_mixed/";
     std::string obj2 = "Circumference";
     std::string path2 = "../training/empty_circles16x16_mixed/";
-    trainer.trainBinary(obj1, path1, obj2, path2, 100000, 0.15, &GeneticNetworkTrainer::fitnessPercentageHybrid, true);
+
+    trainer.initializeCache(path1, path2);
+
+    for (int i = 0; i < 300; i++) {
+        trainer.trainBinary(obj1, path1, obj2, path2, 0.15, &GeneticNetworkTrainer::fitnessPercentageLinear, i + 1, (i + 1) % 100 == 0);
+    }
     //std::cout << trainer.getFitness(neuralNetwork, path1, path2) << std::endl;
 }
 

@@ -72,7 +72,8 @@ void Layer::loadBiases(const std::vector<double>& b) {
 
 void Layer::setInitialValues(const std::vector<double>& initialValues) {
     if (initialValues.size() != neuronAmount) {
-        std::cerr << "Tried to initialize the values of a layer with a vector that is not the expected size. "
+        std::cerr << "Tried to initialize the values of a layer with a vector that is not the expected size "
+                    << "(" << initialValues.size() << ", but should be " << neuronAmount << ". "
                     << "Values not initialized." << std::endl;
         return;
     }
@@ -473,7 +474,7 @@ std::vector<std::vector<double>> GeneticNetworkTrainer::mutateVector(std::vector
 
     std::uniform_real_distribution<double> distribution(lowerBound, upperBound);
 
-    for (std::vector<double>& currVec: vec) {
+    for (std::vector<double>& currVec : vec) {
         std::vector<double> currMut;
         currMut.reserve(currVec.size());
 
@@ -692,12 +693,8 @@ std::vector<std::vector<double>> GeneticNetworkTrainer::getFitnessData(NeuralNet
 
     return sampleData;
 }
-    
-void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int genLimit, double rangeRandomness,
-                                        double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int), bool multithread, int imageLimit) {
-    // Trains a network to distinguish between 2 objects.
-    // Images of the first object are analised from path1, and images of the second object from path2.
 
+void GeneticNetworkTrainer::initializeCache(std::string& path1, std::string& path2) {
     // Initialize the cache of files and images before any multithreaded operations to prevent race conditions.
     initializeFilesCache(path1);
     initializeFilesCache(path2);
@@ -705,92 +702,91 @@ void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, s
     initializeImageCache(getFiles(path1, true));
     initializeImageCache(getFiles(path2, true));
     std::cout << "Image cache initialized\n";
+}
+    
+void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, double rangeRandomness,
+                                        double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int),
+                                        int currentGen, bool writeNetworkData, bool multithread, int imageLimit) {
+    // Trains a network to distinguish between 2 objects.
+    // Images of the first object are analised from path1, and images of the second object from path2.
 
-    double prevMaxPoints = -1;
+    std::vector<NeuralNetwork*> networkVector;
+    std::vector<double> networkPoints;
 
-    for (int gen = 1; gen <= genLimit; gen++) {
-        std::vector<NeuralNetwork*> networkVector;
-        std::vector<double> networkPoints;
-
-        // Add the current base network to compare it to its mutations.
-        networkVector.push_back(baseNetwork);
-        
-        // Fill the networkVector with mutationsPerGen - 1 mutations of the base network.
-        for (int i = 1; i < mutationsPerGen; i++) {
-            networkVector.push_back(mutate(rangeRandomness));
-        }
-
-
-        // Get the fitness of all NeuralNetworks and store it in points.
-        if (multithread) {
-            // Reserve the necessary space in the networkPoints vector.
-            networkPoints.resize(networkVector.size());
-
-            std::vector<std::thread> threads;
-            std::mutex mutex;
-
-            // Define the getFitnessThreaded lambda function that will be executed in each thread.
-            auto getFitnessThreaded = [&](NeuralNetwork* nn, int index) {
-                double points = (this->*fitnessFunction)(nn, path1, path2, imageLimit);
-                std::lock_guard<std::mutex> lock(mutex);
-                networkPoints[index] = points;
-            };
-
-            // Run fitness calculations.
-            for (int i = 0; i < networkVector.size(); i++) {
-                // Create a thread for each NeuralNetwork.
-                threads.emplace_back(getFitnessThreaded, networkVector[i], i);
-            }
-
-            // Wait for all threads to finish.
-            for (auto& thread : threads) {
-                thread.join();
-            }
-
-        } else {
-            for (NeuralNetwork* nn : networkVector) {
-                networkPoints.push_back((this->*fitnessFunction)(nn, path1, path2, imageLimit));
-            }
-        }
-
-        // Find the best performing network, and set it as the base network.
-        double maxPoints = -1;
-        double maxPointsIndex = -1;
-
-        for (int i = 0; i < networkPoints.size(); i++) {
-            if (networkPoints[i] >= maxPoints) {
-                maxPoints = networkPoints[i];
-                maxPointsIndex = i;
-            }
-        }
-
-        // If the best network is not the base network (with index 0), update baseNetwork.
-        if (maxPointsIndex != 0) {
-            baseNetwork = networkVector[maxPointsIndex];
-        }
-
-        // Delete the networks that aren't the best performer:
-        for (int i = 0; i < networkVector.size(); i++) {
-            if (i != maxPointsIndex) {
-                delete networkVector[i];
-            }
-        }
-
-        // Write the weights and biases of the best NeuralNetwork to disk, only if it performed
-        // better.
-        if (maxPoints > prevMaxPoints) {
-            std::string path = trainPath;
-            std::string weightsPath = path + "/" + "gen" + std::to_string(gen) + ".weights";
-            std::string biasesPath = path + "/" + "gen" + std::to_string(gen) + ".bias";
-            makeDir(path);
-
-            baseNetwork->writeWeightsToFile(weightsPath);
-            baseNetwork->writeBiasesToFile(biasesPath);
-
-            prevMaxPoints = maxPoints;
-        }
-
-        currentGen = gen;
-        std::cout << "Gen " << gen << " best points: " << maxPoints << '\n';
+    // Add the current base network to compare it to its mutations.
+    networkVector.push_back(baseNetwork);
+    
+    // Fill the networkVector with mutationsPerGen - 1 mutations of the base network.
+    for (int i = 1; i < mutationsPerGen; i++) {
+        networkVector.push_back(mutate(rangeRandomness));
     }
+
+
+    // Get the fitness of all NeuralNetworks and store it in points.
+    if (multithread) {
+        // Reserve the necessary space in the networkPoints vector.
+        networkPoints.resize(networkVector.size());
+
+        std::vector<std::thread> threads;
+        std::mutex mutex;
+
+        // Define the getFitnessThreaded lambda function that will be executed in each thread.
+        auto getFitnessThreaded = [&](NeuralNetwork* nn, int index) {
+            double points = (this->*fitnessFunction)(nn, path1, path2, imageLimit);
+            std::lock_guard<std::mutex> lock(mutex);
+            networkPoints[index] = points;
+        };
+
+        // Run fitness calculations.
+        for (int i = 0; i < networkVector.size(); i++) {
+            // Create a thread for each NeuralNetwork.
+            threads.emplace_back(getFitnessThreaded, networkVector[i], i);
+        }
+
+        // Wait for all threads to finish.
+        for (auto& thread : threads) {
+            thread.join();
+        }
+
+    } else {
+        for (NeuralNetwork* nn : networkVector) {
+            networkPoints.push_back((this->*fitnessFunction)(nn, path1, path2, imageLimit));
+        }
+    }
+
+    // Find the best performing network, and set it as the base network.
+    double maxPoints = -1;
+    double maxPointsIndex = -1;
+
+    for (int i = 0; i < networkPoints.size(); i++) {
+        if (networkPoints[i] >= maxPoints) {
+            maxPoints = networkPoints[i];
+            maxPointsIndex = i;
+        }
+    }
+
+    // If the best network is not the base network (with index 0), update baseNetwork.
+    if (maxPointsIndex != 0) {
+        baseNetwork = networkVector[maxPointsIndex];
+    }
+
+    // Delete the networks that aren't the best performer:
+    for (int i = 0; i < networkVector.size(); i++) {
+        if (i != maxPointsIndex) {
+            delete networkVector[i];
+        }
+    }
+
+    if (writeNetworkData) {
+        // Write the weights and biases of the best NeuralNetwork to disk.
+        std::string path = trainPath;
+        std::string weightsPath = path + "/" + "gen" + std::to_string(currentGen) + ".weights";
+        std::string biasesPath = path + "/" + "gen" + std::to_string(currentGen) + ".bias";
+        makeDir(path);
+
+        baseNetwork->writeWeightsToFile(weightsPath);
+        baseNetwork->writeBiasesToFile(biasesPath);
+    }
+
+    std::cout << "Gen " << currentGen << " best points: " << maxPoints << '\n';
 }

@@ -79,8 +79,6 @@ private:
     NeuralNetwork* mutate(double rangeRandomness);
 
 public:
-    int currentGen = 0;
-
     GeneticNetworkTrainer(NeuralNetwork* baseNet, const std::string& tPath, double wMutation, double bMutation, int mutations);
 
     double fitnessBasic(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
@@ -91,5 +89,6 @@ public:
     double fitnessPercentageHybrid(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
     std::string getAccuracyString(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int imageLimit = -1);
     std::vector<std::vector<double>> getFitnessData(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
-    void trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int genLimit, double rangeRandomness, double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int), bool multithread = true, int imageLimit = -1);
+    void initializeCache(std::string& path1, std::string& path2);
+    void trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, double rangeRandomness, double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int), int currentGen, bool writeNetworkData = false, bool multithread = true, int imageLimit = -1);
 };
