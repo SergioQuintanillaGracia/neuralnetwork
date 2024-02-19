@@ -71,7 +71,6 @@ void trainModel(std::string& obj1, std::string& path1, std::string& obj2, std::s
                 break;
         }
 
-        std::cout << "Before trainBinary\n";
         trainer->trainBinary(obj1, path1, obj2, path2, rangeRandomness, fitnessFunction, currentGen, writeNetworkData, multithread, imageLimit);
     } else {
         std::cerr << "No trainer has been initialized. Run initializeTrainer() before training the model.\n";

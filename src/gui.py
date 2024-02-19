@@ -129,7 +129,7 @@ def train_model_loop() -> None:
     bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
     bindings.initializeTrainer(models_dir + current_model_name + "/training", 0, 0.1, 18)
     bindings.initializeCache(current_model_obj1_image_path, current_model_obj2_image_path)
-    generations: int = 5
+    generations: int = 250
 
     for i in range(generations):
         bindings.trainModel(current_model_obj1_name, current_model_obj1_image_path, current_model_obj2_name,
@@ -184,10 +184,13 @@ train_obj2_images_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name),
 train_obj2_images_label.place(relx=0.85, rely=0.12, anchor=ctk.CENTER)
 
 train_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=120, height=34, text="Train", font=medium_font, command=train_model)
-train_button.place(relx=0.172, rely=0.92, anchor=ctk.CENTER)
+train_button.place(relx=0.25, rely=0.92, anchor=ctk.CENTER)
 
 train_gen_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="", font=smaller_font, text_color="gray", height=10)
-train_gen_label.place(relx=0.172, rely=0.86, anchor=ctk.CENTER)
+train_gen_label.place(relx=0.25, rely=0.86, anchor=ctk.CENTER)
+
+train_update_to_best_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=120, height=34, text="Update base model to best", font=medium_font, command=None)
+train_update_to_best_button.place(relx=0.672, rely=0.92, anchor=ctk.CENTER)
 
 
 app.mainloop()
