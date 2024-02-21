@@ -1,15 +1,14 @@
 import customtkinter as ctk
-import tkinter as tk
 from tkinter import filedialog
-from PIL import Image, ImageTk
+from PIL import Image
 import bindings
 import os
 import json
 from threading import Thread
-import time
+import shutil
 
 # Configure scaling and theme
-scale = 1
+scale = 2
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("blue")
 ctk.set_window_scaling(scale)
@@ -145,6 +144,23 @@ def train_model() -> None:
     t = Thread(target=train_model_loop)
     t.start()
 
+def get_latest_model_paths(path):
+    paths: list[str] = []
+    latest_weight_file = None
+    latest_weight_file_time = 0
+
+    it: iter = os.scandir(path)
+    weights_path_list: list[str] = [entry.name for entry in it if entry.is_file() and entry.name.endswith(".weights")]
+
+    for file_path in weights_path_list:
+        gen_number = os.path.basename(file_path)
+
+def update_to_latest_model() -> None:
+    model_paths = get_latest_model_paths(models_dir + current_model_name + "/training")
+    # Copy the weights and biases to the model folder
+    shutil.move(model_paths[0], models_dir + current_model_name + "/default.weights")
+    shutil.move(model_paths[1], models_dir + current_model_name + "/default.bias")
+
 
 # MODEL TAB CODE
 model_optionmenu_default_opt = ctk.StringVar(value="Select Model")
@@ -189,7 +205,7 @@ train_button.place(relx=0.25, rely=0.92, anchor=ctk.CENTER)
 train_gen_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="", font=smaller_font, text_color="gray", height=10)
 train_gen_label.place(relx=0.25, rely=0.86, anchor=ctk.CENTER)
 
-train_update_to_best_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=120, height=34, text="Update base model to best", font=medium_font, command=None)
+train_update_to_best_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=120, height=34, text="Update base model to latest", font=medium_font, command=update_to_latest_model)
 train_update_to_best_button.place(relx=0.672, rely=0.92, anchor=ctk.CENTER)
 
 
