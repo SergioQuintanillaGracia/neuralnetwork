@@ -8,7 +8,7 @@ from threading import Thread
 import shutil
 
 # Configure scaling and theme
-scale = 2
+scale = 1
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("blue")
 ctk.set_window_scaling(scale)
@@ -36,6 +36,7 @@ model_obj_2_label: str = None
 train_obj1_images_label = None
 train_obj2_images_label = None
 train_gen_label = None
+train_gen_entry = None
 
 use_model_tab_name: str = "  Use Model  "
 train_model_tab_name: str = "  Train Model  "
@@ -128,18 +129,34 @@ def train_model_loop() -> None:
     bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
     bindings.initializeTrainer(models_dir + current_model_name + "/training", 0, 0.1, 18)
     bindings.initializeCache(current_model_obj1_image_path, current_model_obj2_image_path)
-    generations: int = 250
+    generations: int = int(train_gen_entry.get())
+    train_gen_entry.place_forget()
+    train_gen_label.place(relx=0.25, rely=0.86, anchor=ctk.CENTER)
 
     for i in range(generations):
+        save_to_disk = False
+
+        if (i + 1) % 20 == 0 or i + 1 == generations:
+            save_to_disk = True
+            update_gen_label(i + 1, generations)
+
         bindings.trainModel(current_model_obj1_name, current_model_obj1_image_path, current_model_obj2_name,
-                            current_model_obj2_image_path, 0.15, 5, i + 1, (i + 1) % 20 == 0, True, -1)
-        update_gen_label(i + 1, generations)
+                            current_model_obj2_image_path, 0.15, 5, i + 1, save_to_disk, True, -1)
+    
+    train_gen_entry.place(relx=0.25, rely=0.85, anchor=ctk.CENTER)
+    train_gen_label.place_forget()
 
 def update_gen_label(gen: int, max_gen: int) -> None:
     global train_gen_label
     train_gen_label.configure(text = str(gen) + " / " + str(max_gen))
 
 def train_model() -> None:
+    print("Deleting previous training files")
+    for filename in os.listdir(models_dir + current_model_name + "/training/"):
+        file_path = os.path.join(models_dir + current_model_name + "/training/", filename)
+        if (os.path.isfile(file_path)):
+            os.unlink(file_path)
+
     print("Starting model training")
     t = Thread(target=train_model_loop)
     t.start()
@@ -147,13 +164,22 @@ def train_model() -> None:
 def get_latest_model_paths(path):
     paths: list[str] = []
     latest_weight_file = None
-    latest_weight_file_time = 0
+    latest_weight_file_gen = -1
 
     it: iter = os.scandir(path)
     weights_path_list: list[str] = [entry.name for entry in it if entry.is_file() and entry.name.endswith(".weights")]
 
-    for file_path in weights_path_list:
-        gen_number = os.path.basename(file_path)
+    for weight_path in weights_path_list:
+        num: int = int(weight_path[3:weight_path.index(".weights")])
+
+        if num > latest_weight_file_gen:
+            latest_weight_file_gen = num
+            latest_weight_file = weight_path
+    
+    paths.append(models_dir + current_model_name + "/training/" + latest_weight_file)
+    paths.append(models_dir + current_model_name + "/training/" + latest_weight_file.replace(".weights", ".bias"))
+
+    return paths
 
 def update_to_latest_model() -> None:
     model_paths = get_latest_model_paths(models_dir + current_model_name + "/training")
@@ -203,7 +229,9 @@ train_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=120
 train_button.place(relx=0.25, rely=0.92, anchor=ctk.CENTER)
 
 train_gen_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="", font=smaller_font, text_color="gray", height=10)
-train_gen_label.place(relx=0.25, rely=0.86, anchor=ctk.CENTER)
+
+train_gen_entry = ctk.CTkEntry(master=tabview.tab(train_model_tab_name), placeholder_text="Generations", width = 100, justify="center")
+train_gen_entry.place(relx=0.25, rely=0.85, anchor=ctk.CENTER)
 
 train_update_to_best_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=120, height=34, text="Update base model to latest", font=medium_font, command=update_to_latest_model)
 train_update_to_best_button.place(relx=0.672, rely=0.92, anchor=ctk.CENTER)

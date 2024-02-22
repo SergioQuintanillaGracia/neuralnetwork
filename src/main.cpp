@@ -22,7 +22,7 @@ int main() {
 
     trainer.initializeCache(path1, path2);
 
-    for (int i = 0; i < 300; i++) {
+    for (int i = 0; i < 500; i++) {
         trainer.trainBinary(obj1, path1, obj2, path2, 0.15, &GeneticNetworkTrainer::fitnessPercentageLinear, i + 1, (i + 1) % 100 == 0);
     }
     //std::cout << trainer.getFitness(neuralNetwork, path1, path2) << std::endl;
