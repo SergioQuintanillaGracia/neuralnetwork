@@ -91,5 +91,5 @@ double fitnessEqual(NeuralNetwork* network, const std::string& path1, const std:
     std::string getAccuracyString(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int imageLimit = -1);
     std::vector<std::vector<double>> getFitnessData(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
     void initializeCache(std::string& path1, std::string& path2);
-    void trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, double rangeRandomness, double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int), int currentGen, bool writeNetworkData = false, bool multithread = true, int imageLimit = -1);
+    void trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, double rangeRandomness, double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int), int currentGen, bool writeNetworkData = false, bool multithread = true, bool enableOutput = false, int imageLimit = -1);
 };

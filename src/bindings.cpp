@@ -34,6 +34,10 @@ std::vector<double> getModelAnswer(std::string imagePath, bool useCache = false)
     return neuralNetwork->compute(input);
 }
 
+std::string getAccuracyString(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int imageLimit = -1) {
+    return trainer->getAccuracyString(obj1, path1, obj2, path2, imageLimit);
+}
+
 void initializeCache(std::string path1, std::string path2) {
     if (trainer) {
         trainer->initializeCache(path1, path2);
@@ -53,7 +57,8 @@ void initializeTrainer(std::string& trainPath, double wMutation, double bMutatio
 }
 
 void trainModel(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, double rangeRandomness,
-                int fitnessFunctionID, int currentGen, bool writeNetworkData, bool multithread = true, int imageLimit = -1) {
+                int fitnessFunctionID, int currentGen, bool writeNetworkData, bool multithread = true, bool enableOutput = false,
+                int imageLimit = -1) {
     double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int);
 
     if (trainer) {
@@ -79,7 +84,7 @@ void trainModel(std::string& obj1, std::string& path1, std::string& obj2, std::s
                 break;
         }
 
-        trainer->trainBinary(obj1, path1, obj2, path2, rangeRandomness, fitnessFunction, currentGen, writeNetworkData, multithread, imageLimit);
+        trainer->trainBinary(obj1, path1, obj2, path2, rangeRandomness, fitnessFunction, currentGen, writeNetworkData, multithread, enableOutput, imageLimit);
     } else {
         std::cerr << "No trainer has been initialized. Run initializeTrainer() before training the model.\n";
     }
@@ -91,6 +96,7 @@ PYBIND11_MODULE(bindings, m) {
     m.def("initializeModelFiles", &initializeModelFiles, "Initializes a model's .weights and .bias files");
     m.def("loadModel", &loadModel, "Load a model with specified layers, weights, and biases");
     m.def("getModelAnswer", &getModelAnswer, "Get the model's answer for a given image path");
+    m.def("getAccuracyString", &getAccuracyString, "Get the accuracy string of the current GeneticNetworkTrainer base model.");
     m.def("initializeCache", &initializeCache, "Initialize image and files cache to avoid race conditions in multithreaded environments");
     m.def("initializeTrainer", &initializeTrainer, "Initialize the trainer for the model.");
     m.def("trainModel", &trainModel, "Train a model");

@@ -706,7 +706,7 @@ void GeneticNetworkTrainer::initializeCache(std::string& path1, std::string& pat
     
 void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, double rangeRandomness,
                                         double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int),
-                                        int currentGen, bool writeNetworkData, bool multithread, int imageLimit) {
+                                        int currentGen, bool writeNetworkData, bool multithread, bool enableOutput, int imageLimit) {
     // Trains a network to distinguish between 2 objects.
     // Images of the first object are analised from path1, and images of the second object from path2.
 
@@ -793,5 +793,7 @@ void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, s
         baseNetwork->writeBiasesToFile(biasesPath);
     }
 
-    std::cout << "Gen " << currentGen << " best points: " << maxPoints << '\n';
+    if (enableOutput) {
+        std::cout << "Gen " << currentGen << " best points: " << maxPoints << '\n';
+    }
 }

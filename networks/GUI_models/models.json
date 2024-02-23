@@ -30,5 +30,17 @@
     ],
     "weightsPath": "./networks/GUI_models/circles_circumf_16x16/default.weights",
     "biasesPath": "./networks/GUI_models/circles_circumf_16x16/default.bias"
+  },
+  "Test": {
+    "obj1Name": "Full",
+    "obj2Name": "Empty",
+    "layers": [
+      256,
+      48,
+      16,
+      1
+    ],
+    "weightsPath": "./networks/GUI_models/Test/default.weights",
+    "biasesPath": "./networks/GUI_models/Test/default.bias"
   }
 }
