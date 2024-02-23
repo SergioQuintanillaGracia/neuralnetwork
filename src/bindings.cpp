@@ -10,6 +10,14 @@ namespace py = pybind11;
 NeuralNetwork* neuralNetwork = nullptr;
 GeneticNetworkTrainer* trainer = nullptr;
 
+void initializeModelFiles(std::vector<int> layers, std::string weightsPath, std::string biasesPath) {
+    // Initializes a model's .weights and .bias files.
+    // This function may be optimized in the future, adding the functionality to the NeuralNetwork class.
+    neuralNetwork = new NeuralNetwork(layers, weightsPath, biasesPath, true);
+    delete neuralNetwork;
+    neuralNetwork = nullptr;
+}
+
 void loadModel(std::vector<int> layers, std::string weightsPath, std::string biasesPath) {
     if (neuralNetwork) {
         delete neuralNetwork;
@@ -80,6 +88,7 @@ void trainModel(std::string& obj1, std::string& path1, std::string& obj2, std::s
 PYBIND11_MODULE(bindings, m) {
     m.doc() = "NeuralNetwork Python bindings";
 
+    m.def("initializeModelFiles", &initializeModelFiles, "Initializes a model's .weights and .bias files");
     m.def("loadModel", &loadModel, "Load a model with specified layers, weights, and biases");
     m.def("getModelAnswer", &getModelAnswer, "Get the model's answer for a given image path");
     m.def("initializeCache", &initializeCache, "Initialize image and files cache to avoid race conditions in multithreaded environments");

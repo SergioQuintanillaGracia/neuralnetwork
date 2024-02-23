@@ -31,14 +31,14 @@ def generate_shapes(shape, number_of_images):
             draw.rectangle(shape_outline, outline='white', fill='white')
         
         elif shape == 'circles':
-            radius = random.randint(high_res // 8, high_res // 4)
+            radius = random.randint(high_res // 8, high_res // 2.25)
             offset_x = random.randint(radius + 1, high_res - radius - 1)
             offset_y = random.randint(radius + 1, high_res - radius - 1)
             shape_outline = [offset_x - radius, offset_y - radius, offset_x + radius, offset_y + radius]
             draw.ellipse(shape_outline, outline='white', fill='white')
         
         elif shape == 'empty_circles':
-            radius = random.randint(high_res // 8, high_res // 4)
+            radius = random.randint(high_res // 8, high_res // 2.25)
             offset_x = random.randint(radius + 1, high_res - radius - 1)
             offset_y = random.randint(radius + 1, high_res - radius - 1)
             shape_outline = [offset_x - radius, offset_y - radius, offset_x + radius, offset_y + radius]
@@ -53,7 +53,7 @@ def generate_shapes(shape, number_of_images):
 
 
 # Adjust the number of images if needed
-number_of_images_per_shape = 6400
+number_of_images_per_shape = 1100
 
 generate_shapes('circles', number_of_images_per_shape)
 generate_shapes('empty_circles', number_of_images_per_shape)

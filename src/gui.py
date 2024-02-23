@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 from PIL import Image
 import bindings
 import os
@@ -8,7 +8,7 @@ from threading import Thread
 import shutil
 
 # Configure scaling and theme
-scale = 2
+scale = 1
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("blue")
 ctk.set_window_scaling(scale)
@@ -33,6 +33,8 @@ current_model_obj2_image_path: str = None
 model_image_label: str = None
 model_obj_1_label: str = None
 model_obj_2_label: str = None
+model_model_optionmenu = None
+train_model_optionmenu = None
 train_obj1_images_label = None
 train_obj2_images_label = None
 train_gen_label = None
@@ -72,6 +74,7 @@ tabview.set(manage_models_tab_name)
 def get_model_name_list() -> list[str]:
     it: iter = os.scandir(models_dir)
     dir_list: list[str] = [entry.name for entry in it if entry.is_dir()]
+    print(dir_list)
     return dir_list
 
 def load_current_model_data() -> None:
@@ -79,15 +82,15 @@ def load_current_model_data() -> None:
     # Open the model file, read the data, and store it in variables
     with open(models_dir + "models.json", 'r') as file:
         data = json.load(file)
-    
+
     current_model_obj1_name = data[current_model_name]["obj1Name"]
     current_model_obj2_name = data[current_model_name]["obj2Name"]
     current_model_layers = data[current_model_name]["layers"]
-    current_model_weights_path = models_dir + data[current_model_name]["weightsPath"]
-    current_model_biases_path = models_dir + data[current_model_name]["biasesPath"]
+    current_model_weights_path = data[current_model_name]["weightsPath"]
+    current_model_biases_path = data[current_model_name]["biasesPath"]
 
     bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
-    
+
     print("Loaded data of model: " + current_model_name)
 
 # MODEL TAB FUNCTIONS
@@ -111,8 +114,10 @@ def model_select_image() -> None:
 
     # Get the model answer and set the percentages accordingly
     model_answer = bindings.getModelAnswer(current_image_path, False)
-    model_obj_1_label.configure(text = current_model_obj1_name + ": " + str(round((1 - model_answer[0]) * 100, 2)) + "%")
-    model_obj_2_label.configure(text = current_model_obj2_name + ": " + str(round(model_answer[0] * 100, 2)) + "%")
+    obj1_prefix = "> " if model_answer[0] <= 0.5 else ""
+    obj2_prefix = "> " if model_answer[0] > 0.5 else ""
+    model_obj_1_label.configure(text = obj1_prefix + current_model_obj1_name + ": " + str(round((1 - model_answer[0]) * 100, 2)) + "%")
+    model_obj_2_label.configure(text = obj2_prefix + current_model_obj2_name + ": " + str(round(model_answer[0] * 100, 2)) + "%")
 
 
 # TRAIN TAB FUNCTIONS
@@ -134,6 +139,7 @@ def train_model_loop() -> None:
     bindings.initializeTrainer(models_dir + current_model_name + "/training", 0, 0.1, 18)
     bindings.initializeCache(current_model_obj1_image_path, current_model_obj2_image_path)
     generations: int = int(train_gen_entry.get())
+    update_gen_label(0, generations)
     train_gen_entry.place_forget()
     train_gen_label.place(relx=0.25, rely=0.86, anchor=ctk.CENTER)
 
@@ -193,29 +199,78 @@ def update_to_latest_model() -> None:
 
 
 # MANAGE TAB FUNCTIONS
+def update_optionmenus() -> None:
+    # Update OptionMenus model lists
+    model_optionmenu_var.set("Select Model")
+    model_name_list = get_model_name_list()
+    model_model_optionmenu.configure(values=model_name_list)
+    train_model_optionmenu.configure(values=model_name_list)
+    manage_model_optionmenu.configure(values=model_name_list)
+
 def create_model() -> None:
     global manage_name_entry, manage_obj1_entry, manage_obj2_entry, manage_layers_entry
     # Open the model file and read the data
     with open(models_dir + "models.json", 'r') as file:
         data = json.load(file)
-    
-    layers_list_str: list[str] = current_model_layers.get().split(",")
+
+    # Get the layer entry input and convert it to an int list
+    layers_list_str: list[str] = manage_layers_entry.get().split(",")
     layers_list: list[int] = [int(s) for s in layers_list_str]
 
-    data[manage_name_entry.get()] = {
+    # Get the data of the new model to add from the corresponding entries
+    model_name = manage_name_entry.get()
+    weightsPath = models_dir + model_name + "/default.weights"
+    biasesPath = models_dir + model_name + "/default.bias"
+
+    data[model_name] = {
         "obj1Name": manage_obj1_entry.get(),
         "obj2Name": manage_obj2_entry.get(),
         "layers": layers_list,
-        "weightsPath": models_dir + manage_name_entry.get() + "/default.weights",
-        "biasesPath": models_dir + manage_name_entry.get() + "/default.bias"
+        "weightsPath": weightsPath,
+        "biasesPath": biasesPath
     }
 
+    # Add the data of the new model to the json file
+    with open(models_dir + "models.json", 'w') as file:
+        json.dump(data, file, indent=2)
     
+    # Create model folders
+    os.makedirs(os.path.join(models_dir, manage_name_entry.get(), "training"))
+
+    # Initialize the model with random weights and biases
+    bindings.initializeModelFiles(layers_list, weightsPath, biasesPath)
+
+    update_optionmenus()
+
+def ask_delete_model() -> None:
+    global model_optionmenu_var, model_model_optionmenu, train_model_optionmenu
+    model_to_delete = model_optionmenu_var.get()
+    response = messagebox.askyesno("Delete model", f"You are about to permanently delete \"{model_to_delete}\". Do you want to proceed?")
+    
+    if response:
+        # Remove the model's folder
+        shutil.rmtree(os.path.join(models_dir, model_to_delete))
+        
+        # Remove the model from models.json
+        with open(os.path.join(models_dir, "models.json")) as file:
+            data = json.load(file)
+        
+        del data[model_to_delete]
+
+        # Write the updated json data to models.json
+        with open(os.path.join(models_dir, "models.json"), 'w') as file:
+            json.dump(data, file, indent=2)
+        
+        update_optionmenus()
+
+        # Set model tab labels to their default values
+        model_obj_1_label.configure(text="Object 1: ___%")
+        model_obj_2_label.configure(text="Object 2: ___%")
 
 
 # MODEL TAB CODE
-model_optionmenu_default_opt = ctk.StringVar(value="Select Model")
-model_model_optionmenu = ctk.CTkOptionMenu(master=tabview.tab(use_model_tab_name), width=260, height=34, font=small_font, values=get_model_name_list(), command=model_optionmenu_func, variable=model_optionmenu_default_opt)
+model_optionmenu_var = ctk.StringVar(value="Select Model")
+model_model_optionmenu = ctk.CTkOptionMenu(master=tabview.tab(use_model_tab_name), width=260, height=34, font=small_font, values=get_model_name_list(), command=model_optionmenu_func, variable=model_optionmenu_var)
 model_model_optionmenu.place(relx=0.172, rely=0.92, anchor=ctk.CENTER)
 
 model_select_image_button = ctk.CTkButton(master=tabview.tab(use_model_tab_name), width=150, height=34, text="Select Image", font=small_font, command=model_select_image)
@@ -235,7 +290,7 @@ model_obj_2_label.place(relx=0.756, rely=0.5, anchor=ctk.CENTER)
 
 
 # TRAIN TAB CODE
-train_model_optionmenu = ctk.CTkOptionMenu(master=tabview.tab(train_model_tab_name), width=340, height=34, font=small_font, values=get_model_name_list(), command=model_optionmenu_func, variable=model_optionmenu_default_opt)
+train_model_optionmenu = ctk.CTkOptionMenu(master=tabview.tab(train_model_tab_name), width=340, height=34, font=small_font, values=get_model_name_list(), command=model_optionmenu_func, variable=model_optionmenu_var)
 train_model_optionmenu.place(relx=0.25, rely=0.06, anchor=ctk.CENTER)
 
 train_select_obj1_images_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=150, height=34, text="Select obj1 images", font=small_font, command=train_select_obj1_image_path)
@@ -255,7 +310,7 @@ train_button.place(relx=0.25, rely=0.92, anchor=ctk.CENTER)
 
 train_gen_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="", font=smaller_font, text_color="gray", height=10)
 
-train_gen_entry = ctk.CTkEntry(master=tabview.tab(train_model_tab_name), placeholder_text="Generations", width = 100, font=small_font, justify="center")
+train_gen_entry = ctk.CTkEntry(master=tabview.tab(train_model_tab_name), placeholder_text="Generations", width = 120, font=small_font, justify="center")
 train_gen_entry.place(relx=0.25, rely=0.85, anchor=ctk.CENTER)
 
 train_update_to_best_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=120, height=34, text="Update base model to latest", font=medium_font, command=update_to_latest_model)
@@ -280,9 +335,14 @@ manage_layers_entry.place(relx=0.25, rely=0.67, anchor=ctk.CENTER)
 manage_add_model_button = ctk.CTkButton(master=tabview.tab(manage_models_tab_name), width=120, height=34, text="Create model", font=medium_font, command=create_model)
 manage_add_model_button.place(relx=0.25, rely=0.85, anchor=ctk.CENTER)
 
-
 manage_remove_model_label = ctk.CTkLabel(master=tabview.tab(manage_models_tab_name), text="REMOVE A MODEL", font=large_underlined_font)
 manage_remove_model_label.place(relx=0.75, rely=0.1, anchor=ctk.CENTER)
+
+manage_model_optionmenu = ctk.CTkOptionMenu(master=tabview.tab(manage_models_tab_name), width=340, height=34, font=small_font, values=get_model_name_list(), command=model_optionmenu_func, variable=model_optionmenu_var)
+manage_model_optionmenu.place(relx=0.75, rely=0.25, anchor=ctk.CENTER)
+
+manage_delete_model_button = ctk.CTkButton(master=tabview.tab(manage_models_tab_name), width=120, height=34, text="Delete model", font=medium_font, command=ask_delete_model)
+manage_delete_model_button.place(relx=0.75, rely=0.43, anchor=ctk.CENTER)
 
 
 app.mainloop()

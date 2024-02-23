@@ -1,9 +1,34 @@
 {
+  "sss": {
+    "obj1Name": "a",
+    "obj2Name": "b",
+    "layers": [
+      2,
+      1
+    ],
+    "weightsPath": "./networks/GUI_models/sss/default.weights",
+    "biasesPath": "./networks/GUI_models/sss/default.bias"
+  },
+  "ayuda": {
+    "obj1Name": "a",
+    "obj2Name": "b",
+    "layers": [
+      2,
+      1
+    ],
+    "weightsPath": "./networks/GUI_models/ayuda/default.weights",
+    "biasesPath": "./networks/GUI_models/ayuda/default.bias"
+  },
   "circles_circumf_16x16": {
-    "obj1Name": "Full Circle",
-    "obj2Name": "Circumference",
-    "layers": [256, 96, 48, 1],
-    "weightsPath": "circles_circumf_16x16/default.weights",
-    "biasesPath": "circles_circumf_16x16/default.bias"
+    "obj1Name": "Full circle",
+    "obj2Name": "Empty circle",
+    "layers": [
+      256,
+      96,
+      48,
+      1
+    ],
+    "weightsPath": "./networks/GUI_models/circles_circumf_16x16/default.weights",
+    "biasesPath": "./networks/GUI_models/circles_circumf_16x16/default.bias"
   }
 }
