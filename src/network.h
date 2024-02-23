@@ -83,7 +83,7 @@ public:
     GeneticNetworkTrainer(NeuralNetwork* baseNet, const std::string& tPath, double wMutation, double bMutation, int mutations);
 
     double fitnessBasic(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
-    double fitnessEqual(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
+double fitnessEqual(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
     double fitnessPercentage(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
     double fitnessPercentageLinear(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
     // 10% of the points come from fitnessPercentage, and 90% from fitnessBasic.

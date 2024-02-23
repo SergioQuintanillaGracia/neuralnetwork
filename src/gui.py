@@ -8,7 +8,7 @@ from threading import Thread
 import shutil
 
 # Configure scaling and theme
-scale = 1
+scale = 2
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("blue")
 ctk.set_window_scaling(scale)
@@ -37,10 +37,14 @@ train_obj1_images_label = None
 train_obj2_images_label = None
 train_gen_label = None
 train_gen_entry = None
+manage_name_entry = None
+manage_obj1_entry = None
+manage_obj2_entry = None
+manage_layers_entry = None
 
 use_model_tab_name: str = "  Use Model  "
 train_model_tab_name: str = "  Train Model  "
-model_info_tab_name: str = "  Model Information  "
+manage_models_tab_name: str = "  Manage Models  "
 current_image_path: str = None
 model_img_res_x: float = 380
 model_img_res_y: float = 380
@@ -60,8 +64,8 @@ tabview._segmented_button.configure(font=medium_font)
 tabview.pack(expand=1, fill="both")
 tabview.add(use_model_tab_name)
 tabview.add(train_model_tab_name)
-tabview.add(model_info_tab_name)
-tabview.set(train_model_tab_name)
+tabview.add(manage_models_tab_name)
+tabview.set(manage_models_tab_name)
 
 
 # NEURAL NETWORK FUNCTIONS (temporary at the moment)
@@ -136,12 +140,12 @@ def train_model_loop() -> None:
     for i in range(generations):
         save_to_disk = False
 
-        if (i + 1) % 20 == 0 or i + 1 == generations:
+        if (i + 1) % 1000 == 0 or i + 1 == generations:
             save_to_disk = True
             update_gen_label(i + 1, generations)
 
         bindings.trainModel(current_model_obj1_name, current_model_obj1_image_path, current_model_obj2_name,
-                            current_model_obj2_image_path, 0.15, 5, i + 1, save_to_disk, True, -1)
+                            current_model_obj2_image_path, 0.2, 5, i + 1, save_to_disk, True, -1)
     
     train_gen_entry.place(relx=0.25, rely=0.85, anchor=ctk.CENTER)
     train_gen_label.place_forget()
@@ -188,6 +192,27 @@ def update_to_latest_model() -> None:
     shutil.move(model_paths[1], models_dir + current_model_name + "/default.bias")
 
 
+# MANAGE TAB FUNCTIONS
+def create_model() -> None:
+    global manage_name_entry, manage_obj1_entry, manage_obj2_entry, manage_layers_entry
+    # Open the model file and read the data
+    with open(models_dir + "models.json", 'r') as file:
+        data = json.load(file)
+    
+    layers_list_str: list[str] = current_model_layers.get().split(",")
+    layers_list: list[int] = [int(s) for s in layers_list_str]
+
+    data[manage_name_entry.get()] = {
+        "obj1Name": manage_obj1_entry.get(),
+        "obj2Name": manage_obj2_entry.get(),
+        "layers": layers_list,
+        "weightsPath": models_dir + manage_name_entry.get() + "/default.weights",
+        "biasesPath": models_dir + manage_name_entry.get() + "/default.bias"
+    }
+
+    
+
+
 # MODEL TAB CODE
 model_optionmenu_default_opt = ctk.StringVar(value="Select Model")
 model_model_optionmenu = ctk.CTkOptionMenu(master=tabview.tab(use_model_tab_name), width=260, height=34, font=small_font, values=get_model_name_list(), command=model_optionmenu_func, variable=model_optionmenu_default_opt)
@@ -230,11 +255,34 @@ train_button.place(relx=0.25, rely=0.92, anchor=ctk.CENTER)
 
 train_gen_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="", font=smaller_font, text_color="gray", height=10)
 
-train_gen_entry = ctk.CTkEntry(master=tabview.tab(train_model_tab_name), placeholder_text="Generations", width = 100, justify="center")
+train_gen_entry = ctk.CTkEntry(master=tabview.tab(train_model_tab_name), placeholder_text="Generations", width = 100, font=small_font, justify="center")
 train_gen_entry.place(relx=0.25, rely=0.85, anchor=ctk.CENTER)
 
 train_update_to_best_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=120, height=34, text="Update base model to latest", font=medium_font, command=update_to_latest_model)
 train_update_to_best_button.place(relx=0.672, rely=0.92, anchor=ctk.CENTER)
+
+# MANAGE MODELS TAB CODE
+manage_add_model_label = ctk.CTkLabel(master=tabview.tab(manage_models_tab_name), text="CREATE A MODEL", font=large_underlined_font)
+manage_add_model_label.place(relx=0.25, rely=0.1, anchor=ctk.CENTER)
+
+manage_name_entry = ctk.CTkEntry(master=tabview.tab(manage_models_tab_name), placeholder_text="Model name", width = 200, font=small_font, justify="center")
+manage_name_entry.place(relx=0.25, rely=0.25, anchor=ctk.CENTER)
+
+manage_obj1_entry = ctk.CTkEntry(master=tabview.tab(manage_models_tab_name), placeholder_text="Object 1 name", width = 200, font=small_font, justify="center")
+manage_obj1_entry.place(relx=0.25, rely=0.39, anchor=ctk.CENTER)
+
+manage_obj2_entry = ctk.CTkEntry(master=tabview.tab(manage_models_tab_name), placeholder_text="Object 2 name", width = 200, font=small_font, justify="center")
+manage_obj2_entry.place(relx=0.25, rely=0.53, anchor=ctk.CENTER)
+
+manage_layers_entry = ctk.CTkEntry(master=tabview.tab(manage_models_tab_name), placeholder_text="Model layers (separated by ',')", width = 240, font=small_font, justify="center")
+manage_layers_entry.place(relx=0.25, rely=0.67, anchor=ctk.CENTER)
+
+manage_add_model_button = ctk.CTkButton(master=tabview.tab(manage_models_tab_name), width=120, height=34, text="Create model", font=medium_font, command=create_model)
+manage_add_model_button.place(relx=0.25, rely=0.85, anchor=ctk.CENTER)
+
+
+manage_remove_model_label = ctk.CTkLabel(master=tabview.tab(manage_models_tab_name), text="REMOVE A MODEL", font=large_underlined_font)
+manage_remove_model_label.place(relx=0.75, rely=0.1, anchor=ctk.CENTER)
 
 
 app.mainloop()
