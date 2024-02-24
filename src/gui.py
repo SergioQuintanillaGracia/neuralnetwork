@@ -148,7 +148,7 @@ def train_select_obj2_image_path() -> None:
 def train_model_loop() -> None:
     global current_model_obj1_name, current_model_obj1_image_path, current_model_obj2_name, current_model_obj2_image_path
     bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
-    bindings.initializeTrainer(models_dir + current_model_name + "/training", 0, 0.1, 18)
+    bindings.initializeTrainer(models_dir + current_model_name + "/training", 0, 0.1, 24)
     print("Images: " + current_model_obj1_image_path, current_model_obj2_image_path)
     bindings.initializeCache(current_model_obj1_image_path, current_model_obj2_image_path)
     generations: int = int(train_gen_entry.get())

@@ -31,16 +31,28 @@
     "weightsPath": "./networks/GUI_models/circles_circumf_16x16/default.weights",
     "biasesPath": "./networks/GUI_models/circles_circumf_16x16/default.bias"
   },
-  "Test": {
+  "test": {
     "obj1Name": "Full",
     "obj2Name": "Empty",
     "layers": [
       256,
-      48,
-      16,
+      64,
+      32,
       1
     ],
-    "weightsPath": "./networks/GUI_models/Test/default.weights",
-    "biasesPath": "./networks/GUI_models/Test/default.bias"
+    "weightsPath": "./networks/GUI_models/test/default.weights",
+    "biasesPath": "./networks/GUI_models/test/default.bias"
+  },
+  "cir_circumf_adv_16x16": {
+    "obj1Name": "Full Circle",
+    "obj2Name": "Empty Circle",
+    "layers": [
+      256,
+      64,
+      32,
+      1
+    ],
+    "weightsPath": "./networks/GUI_models/cir_circumf_adv_16x16/default.weights",
+    "biasesPath": "./networks/GUI_models/cir_circumf_adv_16x16/default.bias"
   }
 }
