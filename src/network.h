@@ -82,14 +82,10 @@ private:
 public:
     GeneticNetworkTrainer(NeuralNetwork* baseNet, const std::string& tPath, double wMutation, double bMutation, int mutations);
 
-    double fitnessBasic(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
-double fitnessEqual(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
-    double fitnessPercentage(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
-    double fitnessPercentageLinear(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
-    // 10% of the points come from fitnessPercentage, and 90% from fitnessBasic.
-    double fitnessPercentageHybrid(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
-    std::string getAccuracyString(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int imageLimit = -1);
-    std::vector<std::vector<double>> getFitnessData(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit);
-    void initializeCache(std::string& path1, std::string& path2);
-    void trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, double rangeRandomness, double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int), int currentGen, bool writeNetworkData = false, bool multithread = true, bool enableOutput = false, int imageLimit = -1);
+    double fitness(NeuralNetwork* network, const std::vector<std::string>& paths, int imageLimit);
+    std::string getAccuracyString(const std::vector<std::string>& objNames, const std::vector<std::string>& paths, int imageLimit = -1);
+    std::vector<std::vector<std::vector<double>>> getFitnessData(NeuralNetwork* network, const std::vector<std::string>& paths, int imageLimit);
+    void initializeCache(const std::vector<std::string>& paths);
+    void train(const std::vector<std::string>& objNames, const std::vector<std::string>& paths, double rangeRandomness, int currentGen,
+                     bool writeNetworkData = false, bool multithread = true, bool enableOutput = false, int imageLimit = -1);
 };

@@ -1,24 +1,4 @@
 {
-  "sss": {
-    "obj1Name": "a",
-    "obj2Name": "b",
-    "layers": [
-      2,
-      1
-    ],
-    "weightsPath": "./networks/GUI_models/sss/default.weights",
-    "biasesPath": "./networks/GUI_models/sss/default.bias"
-  },
-  "ayuda": {
-    "obj1Name": "a",
-    "obj2Name": "b",
-    "layers": [
-      2,
-      1
-    ],
-    "weightsPath": "./networks/GUI_models/ayuda/default.weights",
-    "biasesPath": "./networks/GUI_models/ayuda/default.bias"
-  },
   "circles_circumf_16x16": {
     "obj1Name": "Full circle",
     "obj2Name": "Empty circle",
@@ -31,18 +11,6 @@
     "weightsPath": "./networks/GUI_models/circles_circumf_16x16/default.weights",
     "biasesPath": "./networks/GUI_models/circles_circumf_16x16/default.bias"
   },
-  "test": {
-    "obj1Name": "Full",
-    "obj2Name": "Empty",
-    "layers": [
-      256,
-      64,
-      32,
-      1
-    ],
-    "weightsPath": "./networks/GUI_models/test/default.weights",
-    "biasesPath": "./networks/GUI_models/test/default.bias"
-  },
   "cir_circumf_adv_16x16": {
     "obj1Name": "Full Circle",
     "obj2Name": "Empty Circle",
@@ -54,5 +22,41 @@
     ],
     "weightsPath": "./networks/GUI_models/cir_circumf_adv_16x16/default.weights",
     "biasesPath": "./networks/GUI_models/cir_circumf_adv_16x16/default.bias"
+  },
+  "sq_cir_24x24": {
+    "obj1Name": "Square",
+    "obj2Name": "Circle",
+    "layers": [
+      576,
+      96,
+      48,
+      1
+    ],
+    "weightsPath": "./networks/GUI_models/sq_cir_24x24/default.weights",
+    "biasesPath": "./networks/GUI_models/sq_cir_24x24/default.bias"
+  },
+  "0_1_28x28": {
+    "obj1Name": "0",
+    "obj2Name": "1",
+    "layers": [
+      784,
+      128,
+      64,
+      1
+    ],
+    "weightsPath": "./networks/GUI_models/0_1_28x28/default.weights",
+    "biasesPath": "./networks/GUI_models/0_1_28x28/default.bias"
+  },
+  "2_3_28x28": {
+    "obj1Name": "2",
+    "obj2Name": "3",
+    "layers": [
+      784,
+      128,
+      64,
+      1
+    ],
+    "weightsPath": "./networks/GUI_models/2_3_28x28/default.weights",
+    "biasesPath": "./networks/GUI_models/2_3_28x28/default.bias"
   }
 }

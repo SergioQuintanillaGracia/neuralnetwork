@@ -16,14 +16,14 @@ int main() {
     GeneticNetworkTrainer trainer(neuralNetwork, basePath, 0, 0.1, 18);
 
     std::string obj1 = "Circle";
-    std::string path1 = "../training/circles16x16_mixed/";
+    std::string path1 = "../training/circles16x16_manual_aug/";
     std::string obj2 = "Circumference";
-    std::string path2 = "../training/empty_circles16x16_mixed/";
+    std::string path2 = "../training/empty_circles16x16_manual_aug/";
 
     trainer.initializeCache(path1, path2);
 
     for (int i = 0; i < 500; i++) {
-        trainer.trainBinary(obj1, path1, obj2, path2, 0.15, &GeneticNetworkTrainer::fitnessPercentageLinear, i + 1, (i + 1) % 100 == 0);
+        trainer.train(obj1, path1, obj2, path2, 0.15, &GeneticNetworkTrainer::fitnessPercentageLinear, i + 1, (i + 1) % 100 == 0, true, -1);
     }
     //std::cout << trainer.getFitness(neuralNetwork, path1, path2) << std::endl;
 }

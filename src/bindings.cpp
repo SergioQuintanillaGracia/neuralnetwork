@@ -57,34 +57,11 @@ void initializeTrainer(std::string& trainPath, double wMutation, double bMutatio
 }
 
 void trainModel(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, double rangeRandomness,
-                int fitnessFunctionID, int currentGen, bool writeNetworkData, bool multithread = true, bool enableOutput = false,
+                int currentGen, bool writeNetworkData, bool multithread = true, bool enableOutput = false,
                 int imageLimit = -1) {
-    double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int);
 
     if (trainer) {
-        switch (fitnessFunctionID) {
-            case 1:
-                fitnessFunction = &GeneticNetworkTrainer::fitnessBasic;
-                break;
-            case 2:
-                fitnessFunction = &GeneticNetworkTrainer::fitnessEqual;
-                break;
-            case 3:
-                fitnessFunction = &GeneticNetworkTrainer::fitnessPercentage;
-                break;
-            case 4:
-                fitnessFunction = &GeneticNetworkTrainer::fitnessPercentageLinear;
-                break;
-            case 5:
-                fitnessFunction = &GeneticNetworkTrainer::fitnessPercentageHybrid;
-                break;
-            default:
-                std::cerr << "Fitness function ID does not exist. Defaulting to fitnessPercentageHybrid\n";
-                fitnessFunction = &GeneticNetworkTrainer::fitnessPercentageHybrid;
-                break;
-        }
-
-        trainer->trainBinary(obj1, path1, obj2, path2, rangeRandomness, fitnessFunction, currentGen, writeNetworkData, multithread, enableOutput, imageLimit);
+        trainer->train(obj1, path1, obj2, path2, rangeRandomness, currentGen, writeNetworkData, multithread, enableOutput, imageLimit);
     } else {
         std::cerr << "No trainer has been initialized. Run initializeTrainer() before training the model.\n";
     }

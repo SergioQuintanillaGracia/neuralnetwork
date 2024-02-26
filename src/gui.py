@@ -161,14 +161,14 @@ def train_model_loop() -> None:
     for i in range(generations):
         save_to_disk = False
 
-        if (i + 1) % 200 == 0 or i + 1 == generations:
+        if (i + 1) % 100 == 0 or i + 1 == generations:
             update_training_model_information(False)
             save_to_disk = True
 
         bindings.trainModel(current_model_obj1_name, current_model_obj1_image_path, current_model_obj2_name,
-                            current_model_obj2_image_path, 0.2, 5, i + 1, save_to_disk, True, False, -1)
+                            current_model_obj2_image_path, 0.2, i + 1, save_to_disk, True, False, -1)
 
-        if (i + 1) % 100 == 0:
+        if (i + 1) % 25 == 0:
             update_gen_label(i + 1, generations)
             time.sleep(0.1)
     

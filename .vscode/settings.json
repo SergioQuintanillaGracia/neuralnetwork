@@ -72,7 +72,9 @@
         "set": "cpp",
         "unordered_set": "cpp",
         "typeindex": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "filesystem": "cpp",
+        "__split_buffer": "cpp"
     },
     "cmake.configureOnOpen": false,
     "git.ignoreLimitWarning": true

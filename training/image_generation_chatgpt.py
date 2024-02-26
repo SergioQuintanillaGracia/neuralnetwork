@@ -11,7 +11,7 @@ import random
 import hashlib
 
 # Target resolution for the output images
-target_res = 16
+target_res = 24
 
 def generate_shapes(shape, number_of_images):
     base_path = os.path.join(os.getcwd(), "training", shape + f"{target_res}x{target_res}")
@@ -24,21 +24,21 @@ def generate_shapes(shape, number_of_images):
         draw = ImageDraw.Draw(img)
 
         if shape == 'squares':
-            size = random.randint(high_res // 4, high_res // 2)
+            size = random.randint(high_res // 3.5, high_res // 2)
             offset_x = random.randint(1, high_res - size - 1)
             offset_y = random.randint(1, high_res - size - 1)
             shape_outline = [offset_x, offset_y, offset_x + size, offset_y + size]
             draw.rectangle(shape_outline, outline='white', fill='white')
         
         elif shape == 'circles':
-            radius = random.randint(high_res // 8, high_res // 2.25)
+            radius = random.randint(high_res // 6, high_res // 3)
             offset_x = random.randint(radius + 1, high_res - radius - 1)
             offset_y = random.randint(radius + 1, high_res - radius - 1)
             shape_outline = [offset_x - radius, offset_y - radius, offset_x + radius, offset_y + radius]
             draw.ellipse(shape_outline, outline='white', fill='white')
         
         elif shape == 'empty_circles':
-            radius = random.randint(high_res // 8, high_res // 2.25)
+            radius = random.randint(high_res // 8, high_res // 3)
             offset_x = random.randint(radius + 1, high_res - radius - 1)
             offset_y = random.randint(radius + 1, high_res - radius - 1)
             shape_outline = [offset_x - radius, offset_y - radius, offset_x + radius, offset_y + radius]
@@ -53,10 +53,10 @@ def generate_shapes(shape, number_of_images):
 
 
 # Adjust the number of images if needed
-number_of_images_per_shape = 1100
+number_of_images_per_shape = 200
 
 generate_shapes('circles', number_of_images_per_shape)
-generate_shapes('empty_circles', number_of_images_per_shape)
+generate_shapes('squares', number_of_images_per_shape)
 
 print("Images generated successfully.")
 
@@ -94,7 +94,7 @@ print ("Removing duplicate images...")
 
 folder_path = os.path.join(os.getcwd(), "training", "circles" + f"{target_res}x{target_res}")
 find_and_remove_duplicates(folder_path)
-folder_path = os.path.join(os.getcwd(), "training", "empty_circles" + f"{target_res}x{target_res}")
+folder_path = os.path.join(os.getcwd(), "training", "squares" + f"{target_res}x{target_res}")
 find_and_remove_duplicates(folder_path)
 
 print("Duplicate images removed.")

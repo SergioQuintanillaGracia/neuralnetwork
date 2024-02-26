@@ -38,7 +38,7 @@ def add_noise(image, noise_level=5, color_noise=False):
     noisy_image = Image.fromarray(np_image.astype(np.uint8))
     return noisy_image
 
-def rotate_and_save(image_path, times=3, noise_level=5, color_noise=True):
+def rotate_and_save(image_path, times=3, noise_level=5, rotate=True, remove_original=True, color_noise=True):
     """
     Rotates an image three times, each time saving `times` number of different noisy versions.
     Follows a specific naming convention where the original image keeps its name,
@@ -47,8 +47,8 @@ def rotate_and_save(image_path, times=3, noise_level=5, color_noise=True):
     base, ext = os.path.splitext(image_path)
     image = Image.open(image_path)
     
-    # Save the original image directly, without modification
-    image.save(f"{base}{ext}")
+    if remove_original:
+        os.remove(image_path)
 
     # Define starting suffix for the additional noisy versions of the original image
     suffix_counter = 1
@@ -59,20 +59,21 @@ def rotate_and_save(image_path, times=3, noise_level=5, color_noise=True):
         noisy_image.save(f"{base}_{suffix_counter}{ext}")
         suffix_counter += 1
 
-    # Generate and save `times` noisy versions of each rotated image
-    for i in range(1, 4):  # For each rotation (90, 180, 270 degrees)
-        rotated_image = image.rotate(i * 90)
-        for n in range(times):
-            noisy_rotated_image = add_noise(rotated_image, noise_level, color_noise)
-            noisy_rotated_image.save(f"{base}_{suffix_counter}{ext}")
-            suffix_counter += 1
+    if rotate:
+        # Generate and save `times` noisy versions of each rotated image
+        for i in range(1, 4):  # For each rotation (90, 180, 270 degrees)
+            rotated_image = image.rotate(i * 90)
+            for n in range(times):
+                noisy_rotated_image = add_noise(rotated_image, noise_level, color_noise)
+                noisy_rotated_image.save(f"{base}_{suffix_counter}{ext}")
+                suffix_counter += 1
 
 
 # Specify your folder path here
-folder_path = 'training/circles16x16_mixed'
+folder_path = 'training/0_24x24'
 
 # Loop through all images in the folder
 for filename in os.listdir(folder_path):
     if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')):
         image_path = os.path.join(folder_path, filename)
-        rotate_and_save(image_path, 3, 40, False)
+        rotate_and_save(image_path, times=3, noise_level=30, rotate=False, remove_original=False, color_noise=False)

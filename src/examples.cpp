@@ -45,7 +45,7 @@ void example2() {
     std::string path1 = "./training/circles16x16/";
     std::string obj2 = "Square";
     std::string path2 = "./training/squares16x16/";
-    trainer.trainBinary(obj1, path1, obj2, path2);
+    trainer.train(obj1, path1, obj2, path2);
 }
 
 void printResult(std::vector<double> vec) {

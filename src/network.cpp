@@ -507,122 +507,37 @@ GeneticNetworkTrainer::GeneticNetworkTrainer(NeuralNetwork* baseNet, const std::
                         : baseNetwork(baseNet), baseNetworkIsOriginal(true), trainPath(tPath), weightMutationAmount(wMutation), biasMutationAmount(bMutation),
                         mutationsPerGen(mutations) {};
 
-double GeneticNetworkTrainer::fitnessBasic(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
-    // Returns the sum of the total images the NeuralNetwork got right.
-    std::vector<std::vector<double>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
-
-    int right1 = 0;
-    int right2 = 0;
-
-    for (double d : fitnessData[0]) {
-        if (d <= 0.5) {
-            right1++;
-        }
-    }
-
-    for (double d : fitnessData[1]) {
-        if (d > 0.5) {
-            right2++;
-        }
-    }
-
-    return right1 + right2;
-}
-
-double GeneticNetworkTrainer::fitnessEqual(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
-    // Returns the sum of the total images the NeuralNetwork got right times a number between 0 and 1,
-    // that depends on the ratio of obj1Right and obj2Right.
-    // This number is greater when the number of obj1 images the NeuralNetwork got right is similar to
-    // the number of obj2 images it got right.
-    // Use this function if you want the NeuralNetwork to learn to recognize obj1 and obj2 with a similar
-    // precission.
-    std::vector<std::vector<double>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
-
-    double right1 = 0;
-    double right2 = 0;
-
-    for (double d : fitnessData[0]) {
-        if (d <= 0.5) {
-            right1++;
-        }
-    }
-
-    for (double d : fitnessData[1]) {
-        if (d > 0.5) {
-            right2++;
-        }
-    }
-
-    double ratio = 0.75 + 0.25 * std::min(right1 / (std::max(1.0, right2)), right2 / (std::max(1.0, right1)));
-    double points = ratio * (right1 + right2);
-
-    return points;
-}
-
-double GeneticNetworkTrainer::fitnessPercentage(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
-    std::vector<std::vector<double>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
+double GeneticNetworkTrainer::fitness(NeuralNetwork* network, const std::vector<std::string>& paths, int imageLimit) {
+    std::vector<std::vector<std::vector<double>>> fitnessData = getFitnessData(network, paths, imageLimit);
 
     double points = 0;
 
-    for (double d : fitnessData[0]) {
-        // Give more points when the answer is closer to 0, in a quadrantic way.
-        points += (1 - d) * (1 - d);
-    }
+    for (int i = 0; i < fitnessData.size(); i++) {
+        // fitnessData[i] corresponds to the ith object's answer data.
+        for (int j = 0; j < fitnessData[i].size(); j++) {
+            // fitnessData[i][j] corresponds to a single ith object's image data, a vector with the value of each neuron after processing the image.
+            // If fitnessData[i][j][i] is the greatest value of the vector, the network correctly classified the image.
+            bool correct = true;
 
-    for (double d : fitnessData[1]) {
-        // Give more points when the answer is closer to 1, in a quadrantic way.
-        points += d * d;
-    }
+            for (int k = 0; k < fitnessData[i][j].size(); k++) {
+                if (k != i && fitnessData[i][j][k] >= fitnessData[i][j][i]) {
+                    // Some neuron that doesn't correspond with this object's neuron has a greater value, so the network didn't correctly label the image.
+                    correct = false;
+                    break;
+                }
+            }
 
-    return points;
-}
-
-double GeneticNetworkTrainer::fitnessPercentageLinear(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
-    std::vector<std::vector<double>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
-
-    double points = 0;
-
-    for (double d : fitnessData[0]) {
-        // Give more points when the answer is closer to 0.
-        points += (1 - d);
-    }
-
-    for (double d : fitnessData[1]) {
-        // Give more points when the answer is closer to 1.
-        points += d;
-    }
-
-    return points;
-}
-
-double GeneticNetworkTrainer::fitnessPercentageHybrid(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
-    std::vector<std::vector<double>> fitnessData = getFitnessData(network, path1, path2, imageLimit);
-
-    double points = 0;
-
-    for (double d : fitnessData[0]) {
-        if (d <= 0.5) {
-            points += 0.9;
+            if (correct) {
+                points++;
+            }
         }
-
-        // Give more points when the answer is closer to 0.
-        points += 0.1 * (1 - d);
-    }
-
-    for (double d : fitnessData[1]) {
-        if (d > 0.5) {
-            points += 0.9;
-        }
-
-        // Give more points when the answer is closer to 1.
-        points += 0.1 * d;
     }
 
     return points;
 }
 
-std::string GeneticNetworkTrainer::getAccuracyString(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int imageLimit) {
-    std::vector<std::vector<double>> fitnessData = getFitnessData(baseNetwork, path1, path2, imageLimit);
+std::string GeneticNetworkTrainer::getAccuracyString(const std::vector<std::string>& objNames, const std::vector<std::string>& paths, int imageLimit) {
+    std::vector<std::vector<std::vector<double>>> fitnessData = getFitnessData(baseNetwork, paths, imageLimit);
 
     double right1 = 0;
     double right2 = 0;
@@ -646,66 +561,48 @@ std::string GeneticNetworkTrainer::getAccuracyString(std::string& obj1, std::str
     return accuracyString;
 }
     
-std::vector<std::vector<double>> GeneticNetworkTrainer::getFitnessData(NeuralNetwork* network, const std::string& path1, const std::string& path2, int imageLimit) {
+std::vector<std::vector<std::vector<double>>> GeneticNetworkTrainer::getFitnessData(NeuralNetwork* network, const std::vector<std::string>& paths, int imageLimit) {
     // Returns a vector with the following structure:
-    // {{obj1img1result, obj2img2result, ...}, {obj2img1.result, obj2img2.result, ...}}
-    std::vector<std::vector<double>> sampleData;
+    // {{obj1img1result, obj2img2result, ...}, {obj2img1.result, obj2img2.result, ...}, ...}
+    std::vector<std::vector<std::vector<double>>> sampleData;
 
-    // Test against object 1 images:
-    std::vector<std::string> paths1 = getFiles(path1, true);
+    for (const std::string& path : paths) {
+        std::vector<std::string> imagePaths = getFiles(path, true);
 
-    // Calculate how many images the NeuralNetwork should be tested with.
-    // The limit will be set to imageLimit if imageLimit is > 0. If it's greater or equal
-    // than the number of images, or negative, every image will be checked.
-    int limit1 = imageLimit > 0 ? (imageLimit > paths1.size() ? paths1.size() : imageLimit) : paths1.size();
+        // Calculate how many images the NeuralNetwork should be tested with.
+        // The limit will be set to imageLimit if imageLimit is > 0. If it's greater or equal
+        // than the number of images, or negative, every image will be checked.
+        int limit = imageLimit > 0 ? (imageLimit > imagePaths.size() ? imagePaths.size() : imageLimit) : imagePaths.size();
 
-    std::vector<double> dataObj1;
-    dataObj1.reserve(limit1);
+        std::vector<std::vector<double>> data;
+        data.reserve(limit);
 
-    // If imageLimit is greater than 0, imageLimit images.
-    for (int i = 0; i < limit1; i++) {
-        std::vector<double> input = extractBrightness(paths1[i], true);
-        double result = network->compute(input)[0];
-        dataObj1.push_back(result);
+        // If imageLimit is greater than 0, imageLimit images.
+        for (int i = 0; i < limit; i++) {
+            std::vector<double> input = extractBrightness(imagePaths[i], true);
+            std::vector<double> result = network->compute(input);
+            data.push_back(result);
+        }
+        sampleData.push_back(data);
     }
-
-    sampleData.push_back(dataObj1);
-
-    // Test against object 2 images:
-    std::vector<std::string> paths2 = getFiles(path2, true);
-
-    // Calculate how many images the NeuralNetwork should be tested with.
-    // The limit will be set to imageLimit if imageLimit is > 0. If it's greater or equal
-    // than the number of images, or negative, every image will be checked.
-    int limit2 = imageLimit > 0 ? (imageLimit > paths2.size() ? paths2.size() : imageLimit) : paths2.size();
-
-    std::vector<double> dataObj2;
-    dataObj2.reserve(limit2);
-
-    // If imageLimit is greater than 0, imageLimit images.
-    for (int i = 0; i < limit2; i++) {
-        std::vector<double> input = extractBrightness(paths2[i], true);
-        double result = network->compute(input)[0];
-        dataObj2.push_back(result);
-    }
-
-    sampleData.push_back(dataObj2);
 
     return sampleData;
 }
 
-void GeneticNetworkTrainer::initializeCache(std::string& path1, std::string& path2) {
+void GeneticNetworkTrainer::initializeCache(const std::vector<std::string>& paths) {
     // Initialize the cache of files and images before any multithreaded operations to prevent race conditions.
-    initializeFilesCache(path1);
-    initializeFilesCache(path2);
+    for (const std::string& path : paths) {
+        initializeFilesCache(path);
+    }
     std::cout << "Files cache initialized\n";
-    initializeImageCache(getFiles(path1, true));
-    initializeImageCache(getFiles(path2, true));
+    
+    for (const std::string& path : paths) {
+        initializeImageCache(getFiles(path, true));
+    }
     std::cout << "Image cache initialized\n";
 }
     
-void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, double rangeRandomness,
-                                        double (GeneticNetworkTrainer::*fitnessFunction)(NeuralNetwork*, const std::string&, const std::string&, int),
+void GeneticNetworkTrainer::train(const std::vector<std::string>& objNames, const std::vector<std::string>& paths, double rangeRandomness,
                                         int currentGen, bool writeNetworkData, bool multithread, bool enableOutput, int imageLimit) {
     // Trains a network to distinguish between 2 objects.
     // Images of the first object are analised from path1, and images of the second object from path2.
@@ -732,7 +629,7 @@ void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, s
 
         // Define the getFitnessThreaded lambda function that will be executed in each thread.
         auto getFitnessThreaded = [&](NeuralNetwork* nn, int index) {
-            double points = (this->*fitnessFunction)(nn, path1, path2, imageLimit);
+            double points = fitness(nn, paths, imageLimit);
             std::lock_guard<std::mutex> lock(mutex);
             networkPoints[index] = points;
         };
@@ -750,7 +647,7 @@ void GeneticNetworkTrainer::trainBinary(std::string& obj1, std::string& path1, s
 
     } else {
         for (NeuralNetwork* nn : networkVector) {
-            networkPoints.push_back((this->*fitnessFunction)(nn, path1, path2, imageLimit));
+            networkPoints.push_back(fitness(nn, paths, imageLimit));
         }
     }
 

@@ -39,6 +39,6 @@ std::vector<std::string> getFiles(const std::string& path, bool useCache) {
     return paths;
 }
 
-void initializeFilesCache(std::string& path) {
+void initializeFilesCache(const std::string& path) {
     getFiles(path, true);
 }
