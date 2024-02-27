@@ -88,6 +88,7 @@ def get_model_name_list() -> list[str]:
     return dir_list
 
 def get_directories(path) -> None:
+    print("Getting directories inside: " + path)
     return [os.path.join(path, name) for name in os.listdir(path) if os.path.isdir(os.path.join(path, name))]
 
 def load_current_model_data() -> None:
@@ -102,6 +103,7 @@ def load_current_model_data() -> None:
     current_model_weights_path = data[current_model_name]["weightsPath"]
     current_model_biases_path = data[current_model_name]["biasesPath"]
 
+    train_select_image_path(current_model_img_path)
     current_model_img_paths = get_directories(current_model_img_path)
 
     bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
@@ -137,15 +139,27 @@ def delete_model_labels():
     if model_obj_labels:
         for label in model_obj_labels:
             label.destroy()
+        model_obj_labels.clear()
     if train_base_obj_labels:
         for label in train_base_obj_labels:
             label.destroy()
+        train_base_obj_labels.clear()
     if train_best_obj_labels:
         for label in train_best_obj_labels:
             label.destroy()
+        train_best_obj_labels.clear()
 
 def update_default_image_path() -> None:
-    pass        # TODO
+    if current_model_img_path:
+        with open(models_dir + "models.json", 'r') as file:
+            data = json.load(file)
+        
+        data[current_model_name]["imgPath"] = current_model_img_path
+
+        with open (models_dir + "models.json", 'w') as file:
+            json.dump(data, file, indent=2)
+    else:
+        print("Tried to set the default image path to null, path did not change")
 
 
 # MODEL TAB FUNCTIONS
@@ -168,7 +182,8 @@ def model_select_image() -> None:
 
     # Get the model answer and set the percentages accordingly
     model_answer = bindings.getModelAnswer(current_image_path, False)
-    print("Model answer: " + model_answer)
+    print("Model answer: ", end="")
+    print(model_answer)
     set_model_answer(model_answer)
 
 def set_model_answer(model_answer):
@@ -192,9 +207,12 @@ def set_model_answer(model_answer):
 
 
 # TRAIN TAB FUNCTIONS
-def train_select_image_path() -> None:
-    global current_model_img_path, current_model_img_paths
+def train_select_image_path_ask() -> None:
     file_path = filedialog.askdirectory(title="Select the folder containing the training data directories")
+    train_select_image_path(file_path)
+
+def train_select_image_path(file_path) -> None:
+    global current_model_img_path, current_model_img_paths
     current_model_img_path = file_path
     current_model_img_paths = get_directories(current_model_img_path)
     update_default_image_path()
@@ -203,7 +221,7 @@ def train_select_image_path() -> None:
 def train_model_loop() -> None:
     global current_model_obj_names, current_model_img_paths
     bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
-    bindings.initializeTrainer(models_dir + current_model_name + "/training", 0, 0.1, 24)
+    bindings.initializeTrainer(models_dir + current_model_name + "/training", 0.05, 0.05, 22)
     print("Images: ", end=" ")
     print(current_model_img_paths)
     bindings.initializeCache(current_model_img_paths)
@@ -217,12 +235,12 @@ def train_model_loop() -> None:
     for i in range(generations):
         save_to_disk = False
 
-        if (i + 1) % 100 == 0 or i + 1 == generations:
+        if (i + 1) % 25 == 0 or i + 1 == generations:
             update_training_model_information(False)
             save_to_disk = True
 
         bindings.trainModel(current_model_obj_names, current_model_img_paths,
-                            0.2, i + 1, save_to_disk, True, False, -1)
+                            0.2, i + 1, save_to_disk, True, False, 750)
 
         if (i + 1) % 25 == 0:
             update_gen_label(i + 1, generations)
@@ -238,12 +256,12 @@ def update_training_model_information(also_set_to_base: bool = False) -> None:
     general_accuracy: float = float(split_accuracy_string[-1].split(": ")[1][:-1])
 
     for i in range(len(obj_accuracy_list)):
-        train_best_obj_labels[i].configure(text = f"{current_model_obj_names[i]} accuracy: {round(obj_accuracy_list, 4)}%")
+        train_best_obj_labels[i].configure(text = f"{current_model_obj_names[i]} accuracy: {round(obj_accuracy_list[i], 4)}%")
     train_best_general_label.configure(text = f"General accuracy: {round(general_accuracy, 4)}%")
 
     if also_set_to_base:
         for i in range(len(obj_accuracy_list)):
-            train_base_obj_labels[i].configure(text = f"{current_model_obj_names[i]} accuracy: {round(obj_accuracy_list, 4)}%")
+            train_base_obj_labels[i].configure(text = f"{current_model_obj_names[i]} accuracy: {round(obj_accuracy_list[i], 4)}%")
         train_base_general_label.configure(text = f"General accuracy: {round(general_accuracy, 4)}%")
 
 def update_gen_label(gen: int, max_gen: int) -> None:
@@ -288,7 +306,7 @@ def update_to_latest_model() -> None:
     shutil.move(model_paths[1], models_dir + current_model_name + "/default.bias")
 
     # Update the training labels to reflect the base model change
-    for i in range(train_base_obj_labels):
+    for i in range(len(train_base_obj_labels)):
         train_base_obj_labels[i].configure(text=train_best_obj_labels[i].cget("text"))
 
     train_base_general_label.configure(text=train_best_general_label.cget("text"))
@@ -389,7 +407,7 @@ model_predictions_label.place(relx=0.756, rely=0.12, anchor=ctk.CENTER)
 train_model_optionmenu = ctk.CTkOptionMenu(master=tabview.tab(train_model_tab_name), width=340, height=34, font=small_font, values=get_model_name_list(), command=model_optionmenu_func, variable=model_optionmenu_var)
 train_model_optionmenu.place(relx=0.25, rely=0.06, anchor=ctk.CENTER)
 
-train_select_obj_images_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=150, height=34, text="Select training images", font=small_font, command=train_select_image_path)
+train_select_obj_images_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=150, height=34, text="Select training images", font=small_font, command=train_select_image_path_ask)
 train_select_obj_images_button.place(relx=0.6, rely=0.06, anchor=ctk.CENTER)
 
 train_obj_images_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="None selected", font=smaller_font, text_color="gray", height=10)

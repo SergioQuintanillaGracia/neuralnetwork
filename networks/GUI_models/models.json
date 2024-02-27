@@ -13,26 +13,66 @@
     "weightsPath": "./networks/GUI_models/2_3_28x28/default.weights",
     "biasesPath": "./networks/GUI_models/2_3_28x28/default.bias"
   },
-  "test": {
+  "0_1_2": {
     "objNames": [
-      "test",
-      "test2",
-      "test3",
-      "test",
-      "test2",
-      "test3",
-      "test",
-      "test2",
-      "test3",
-      "test10"
+      "0",
+      "1",
+      "2"
     ],
-    "imgPath": "/home/sergio/Repos/NeuralNetwork/training/1_24x24",
+    "imgPath": "/home/sergio/Repos/NeuralNetwork/training/mnist_png/training/012",
     "layers": [
-      1,
-      2,
+      784,
+      128,
+      64,
       3
     ],
-    "weightsPath": "./networks/GUI_models/test/default.weights",
-    "biasesPath": "./networks/GUI_models/test/default.bias"
+    "weightsPath": "./networks/GUI_models/0_1_2/default.weights",
+    "biasesPath": "./networks/GUI_models/0_1_2/default.bias"
+  },
+  "digits": {
+    "objNames": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "imgPath": "/home/sergio/Repos/NeuralNetwork/training/mnist_png/training",
+    "layers": [
+      784,
+      192,
+      96,
+      10
+    ],
+    "weightsPath": "./networks/GUI_models/digits/default.weights",
+    "biasesPath": "./networks/GUI_models/digits/default.bias"
+  },
+  "digits_high": {
+    "objNames": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "imgPath": "/home/sergio/Repos/NeuralNetwork/training/mnist_png/training",
+    "layers": [
+      784,
+      256,
+      128,
+      10
+    ],
+    "weightsPath": "./networks/GUI_models/digits_high/default.weights",
+    "biasesPath": "./networks/GUI_models/digits_high/default.bias"
   }
 }
