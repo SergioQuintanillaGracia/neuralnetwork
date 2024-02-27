@@ -7,6 +7,7 @@ import shutil
 import json
 import time
 import os
+import re
 
 # Configure scaling and theme
 scale = 1
@@ -23,32 +24,34 @@ app.title("NeuralNetwork GUI")
 # Variables
 models_dir = "./networks/GUI_models/"
 current_model_name: str = None
-current_model_obj1_name: str = None
-current_model_obj2_name: str = None
+current_model_obj_names: list[str] = []
 current_model_layers: list[int] = None
 current_model_weights_path: str = None
 current_model_biases_path: str = None
-current_model_obj1_image_path: str = None
-current_model_obj2_image_path: str = None
+current_model_img_path: str = None
+current_model_img_paths: list[str] = None
+model_being_created_img_path: str = None
 
 model_image_label: str = None
-model_obj_1_label: str = None
-model_obj_2_label: str = None
+model_obj_labels: list = []
+model_obj_labels_range: list[float] = (0.25, 0.85)
+model_obj_labels_x: float = 0.756
 model_model_optionmenu = None
 train_model_optionmenu = None
-train_obj1_images_label = None
-train_obj2_images_label = None
+train_obj_images_label = None
 train_gen_label = None
 train_gen_entry = None
-train_base_obj1_label = None
-train_base_obj2_label = None
+train_base_obj_labels: list = []
+train_base_obj_labels_range: list[float] = (0.26, 0.7)
+train_base_obj_labels_x: float = 0.25
 train_base_general_label = None
-train_best_obj1_label = None
-train_best_obj2_label = None
+train_best_obj_labels: list = []
+train_best_obj_labels_range: list[float] = (0.26, 0.7)
+train_best_obj_labels_x: float = 0.75
 train_best_general_label = None
 manage_name_entry = None
-manage_obj1_entry = None
-manage_obj2_entry = None
+manage_select_img_label = None
+manage_obj_entry = None
 manage_layers_entry = None
 
 use_model_tab_name: str = "  Use Model  "
@@ -78,44 +81,83 @@ tabview.add(manage_models_tab_name)
 tabview.set(train_model_tab_name)
 
 
-# NEURAL NETWORK FUNCTIONS (temporary at the moment)
+# NEURAL NETWORK FUNCTIONS
 def get_model_name_list() -> list[str]:
     it: iter = os.scandir(models_dir)
     dir_list: list[str] = [entry.name for entry in it if entry.is_dir()]
     return dir_list
 
+def get_directories(path) -> None:
+    return [os.path.join(path, name) for name in os.listdir(path) if os.path.isdir(os.path.join(path, name))]
+
 def load_current_model_data() -> None:
-    global current_model_obj1_name, current_model_obj2_name, current_model_layers, current_model_weights_path, current_model_biases_path
+    global current_model_obj_names, current_model_img_path, current_model_img_paths, current_model_layers, current_model_weights_path, current_model_biases_path
     # Open the model file, read the data, and store it in variables
     with open(models_dir + "models.json", 'r') as file:
         data = json.load(file)
 
-    current_model_obj1_name = data[current_model_name]["obj1Name"]
-    current_model_obj2_name = data[current_model_name]["obj2Name"]
+    current_model_obj_names = data[current_model_name]["objNames"]
+    current_model_img_path = data[current_model_name]["imgPath"]
     current_model_layers = data[current_model_name]["layers"]
     current_model_weights_path = data[current_model_name]["weightsPath"]
     current_model_biases_path = data[current_model_name]["biasesPath"]
 
-    model_obj_1_label.configure(text = current_model_obj1_name + ": ___%")
-    model_obj_2_label.configure(text = current_model_obj2_name + ": ___%")
-    train_base_obj1_label.configure(text = current_model_obj1_name + " accuracy: ___%")
-    train_base_obj2_label.configure(text = current_model_obj2_name + " accuracy: ___%")
-    train_best_obj1_label.configure(text = current_model_obj1_name + " accuracy: ___%")
-    train_best_obj2_label.configure(text = current_model_obj2_name + " accuracy: ___%")
+    current_model_img_paths = get_directories(current_model_img_path)
 
     bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
 
     print("Loaded data of model: " + current_model_name)
 
+def load_current_model_labels() -> None:
+    global model_obj_labels, train_base_obj_labels, train_best_obj_labels
+    model_output_size = len(current_model_obj_names)
+
+    # Delete previous model labels
+    delete_model_labels()
+    
+    model_step = (model_obj_labels_range[1] - model_obj_labels_range[0]) / (model_output_size - 1)
+    train_base_step = (train_base_obj_labels_range[1] - train_base_obj_labels_range[0]) / (model_output_size - 1)
+    train_best_step = (train_best_obj_labels_range[1] - train_best_obj_labels_range[0]) / (model_output_size - 1)
+    min_step = 0.15
+    model_step = model_step if model_step < min_step else min_step
+    train_base_step = train_base_step if train_base_step < min_step else min_step
+    train_best_step = train_best_step if train_best_step < min_step else min_step
+
+    for i in range(model_output_size):
+        model_obj_labels.append(ctk.CTkLabel(master=tabview.tab(use_model_tab_name), text = f"{current_model_obj_names[i]}: ___%", font=medium_font))
+        model_obj_labels[-1].place(relx = model_obj_labels_x, rely = model_obj_labels_range[0] + model_step * i, anchor=ctk.CENTER)
+
+        train_base_obj_labels.append(ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text = f"{current_model_obj_names[i]} accuracy: ___%", font=small_font))
+        train_base_obj_labels[-1].place(relx = train_base_obj_labels_x, rely = train_base_obj_labels_range[0] + train_base_step * i, anchor=ctk.CENTER)
+
+        train_best_obj_labels.append(ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text = f"{current_model_obj_names[i]} accuracy: ___%", font=small_font))
+        train_best_obj_labels[-1].place(relx = train_best_obj_labels_x, rely = train_best_obj_labels_range[0] + train_best_step * i, anchor=ctk.CENTER)
+
+def delete_model_labels():
+    if model_obj_labels:
+        for label in model_obj_labels:
+            label.destroy()
+    if train_base_obj_labels:
+        for label in train_base_obj_labels:
+            label.destroy()
+    if train_best_obj_labels:
+        for label in train_best_obj_labels:
+            label.destroy()
+
+def update_default_image_path() -> None:
+    pass        # TODO
+
+
 # MODEL TAB FUNCTIONS
 def model_optionmenu_func(choice) -> None:
-    global current_model_name, model_obj_1_label, model_obj_2_label
+    global current_model_name
     current_model_name = choice
     load_current_model_data()
+    load_current_model_labels()
     print("Switched to model: " + choice)
     
 def model_select_image() -> None:
-    global current_image_path, model_image_label, model_obj_1_label, model_obj_2_label
+    global current_image_path, model_image_label
     file_path = filedialog.askopenfilename(title="Select an image", filetypes=[("Images", ("*.png", "*.jpg"))])
     current_image_path = file_path
     original_image = Image.open(current_image_path)
@@ -126,32 +168,45 @@ def model_select_image() -> None:
 
     # Get the model answer and set the percentages accordingly
     model_answer = bindings.getModelAnswer(current_image_path, False)
-    print(model_answer)
-    obj1_prefix = "> " if model_answer[0] >= model_answer[1] else ""
-    obj2_prefix = "> " if model_answer[1] > model_answer[0] else ""
-    model_obj_1_label.configure(text = obj1_prefix + current_model_obj1_name + ": " + str(round(model_answer[0] / (model_answer[0] + model_answer[1]) * 100, 2)) + "%")
-    model_obj_2_label.configure(text = obj2_prefix + current_model_obj2_name + ": " + str(round(model_answer[1] / (model_answer[0] + model_answer[1]) * 100, 2)) + "%")
+    print("Model answer: " + model_answer)
+    set_model_answer(model_answer)
+
+def set_model_answer(model_answer):
+    # Find the highest element's index and the total sum of the answers
+    answer_sum: float = 0
+    highest: float = -1
+    highest_index: int = -1
+
+    for i in range(len(model_answer)):
+        answer_sum += model_answer[i]
+        if model_answer[i] > highest:
+            highest = model_answer[i]
+            highest_index = i
+    
+    # Update the prediction labels with the model answer
+    for i in range(len(model_answer)):
+        if i != highest_index:
+            model_obj_labels[i].configure(text = current_model_obj_names[i] + ": " + str(round(model_answer[i] / answer_sum * 100, 2)) + "%")
+        else:
+            model_obj_labels[i].configure(text = "> " + current_model_obj_names[i] + ": " + str(round(model_answer[i] / answer_sum * 100, 2)) + "%")
 
 
 # TRAIN TAB FUNCTIONS
-def train_select_obj1_image_path() -> None:
-    global current_model_obj1_image_path
-    file_path = filedialog.askdirectory(title="Select object 1 training image folder")
-    current_model_obj1_image_path = file_path
-    train_obj1_images_label.configure(text=current_model_obj1_image_path.split('/')[-1])
-
-def train_select_obj2_image_path() -> None:
-    global current_model_obj2_image_path
-    file_path = filedialog.askdirectory(title="Select object 2 training image folder")
-    current_model_obj2_image_path = file_path
-    train_obj2_images_label.configure(text=current_model_obj2_image_path.split('/')[-1])
+def train_select_image_path() -> None:
+    global current_model_img_path, current_model_img_paths
+    file_path = filedialog.askdirectory(title="Select the folder containing the training data directories")
+    current_model_img_path = file_path
+    current_model_img_paths = get_directories(current_model_img_path)
+    update_default_image_path()
+    train_obj_images_label.configure(text=current_model_img_path.split('/')[-1])
 
 def train_model_loop() -> None:
-    global current_model_obj1_name, current_model_obj1_image_path, current_model_obj2_name, current_model_obj2_image_path
+    global current_model_obj_names, current_model_img_paths
     bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
     bindings.initializeTrainer(models_dir + current_model_name + "/training", 0, 0.1, 24)
-    print("Images: " + current_model_obj1_image_path, current_model_obj2_image_path)
-    bindings.initializeCache([current_model_obj1_image_path, current_model_obj2_image_path],)
+    print("Images: ", end=" ")
+    print(current_model_img_paths)
+    bindings.initializeCache(current_model_img_paths)
     generations: int = int(train_gen_entry.get())
     update_gen_label(0, generations)
     update_training_model_information(True)
@@ -166,7 +221,7 @@ def train_model_loop() -> None:
             update_training_model_information(False)
             save_to_disk = True
 
-        bindings.trainModel([current_model_obj1_name, current_model_obj2_name], [current_model_obj1_image_path, current_model_obj2_image_path],
+        bindings.trainModel(current_model_obj_names, current_model_img_paths,
                             0.2, i + 1, save_to_disk, True, False, -1)
 
         if (i + 1) % 25 == 0:
@@ -177,19 +232,18 @@ def train_model_loop() -> None:
     train_gen_label.place_forget()
 
 def update_training_model_information(also_set_to_base: bool = False) -> None:
-    accuracy_string = bindings.getAccuracyString([current_model_obj1_name, current_model_obj2_name], [current_model_obj1_image_path, current_model_obj2_image_path], -1)
-    split_accuracy_string = accuracy_string.split(" | ")
-    obj1_accuracy = float(split_accuracy_string[0].split(": ")[1][:-1])
-    obj2_accuracy = float(split_accuracy_string[1].split(": ")[1][:-1])
-    general_accuracy = float(split_accuracy_string[2].split(": ")[1][:-1])
+    accuracy_string: str = bindings.getAccuracyString(current_model_obj_names, current_model_img_paths, -1)
+    split_accuracy_string: list[str] = accuracy_string.split(" | ")
+    obj_accuracy_list: list[float] = [float(el.split(": ")[1][:-1]) for el in split_accuracy_string[:-1]]
+    general_accuracy: float = float(split_accuracy_string[-1].split(": ")[1][:-1])
 
-    train_best_obj1_label.configure(text = f"{current_model_obj1_name} accuracy: {round(obj1_accuracy, 4)}%")
-    train_best_obj2_label.configure(text = f"{current_model_obj2_name} accuracy: {round(obj2_accuracy, 4)}%")
+    for i in range(len(obj_accuracy_list)):
+        train_best_obj_labels[i].configure(text = f"{current_model_obj_names[i]} accuracy: {round(obj_accuracy_list, 4)}%")
     train_best_general_label.configure(text = f"General accuracy: {round(general_accuracy, 4)}%")
 
     if also_set_to_base:
-        train_base_obj1_label.configure(text = f"{current_model_obj1_name} accuracy: {round(obj1_accuracy, 4)}%")
-        train_base_obj2_label.configure(text = f"{current_model_obj2_name} accuracy: {round(obj2_accuracy, 4)}%")
+        for i in range(len(obj_accuracy_list)):
+            train_base_obj_labels[i].configure(text = f"{current_model_obj_names[i]} accuracy: {round(obj_accuracy_list, 4)}%")
         train_base_general_label.configure(text = f"General accuracy: {round(general_accuracy, 4)}%")
 
 def update_gen_label(gen: int, max_gen: int) -> None:
@@ -234,8 +288,9 @@ def update_to_latest_model() -> None:
     shutil.move(model_paths[1], models_dir + current_model_name + "/default.bias")
 
     # Update the training labels to reflect the base model change
-    train_base_obj1_label.configure(text=train_best_obj1_label.cget("text"))
-    train_base_obj2_label.configure(text=train_best_obj2_label.cget("text"))
+    for i in range(train_base_obj_labels):
+        train_base_obj_labels[i].configure(text=train_best_obj_labels[i].cget("text"))
+
     train_base_general_label.configure(text=train_best_general_label.cget("text"))
 
 
@@ -249,23 +304,24 @@ def update_optionmenus() -> None:
     manage_model_optionmenu.configure(values=model_name_list)
 
 def create_model() -> None:
-    global manage_name_entry, manage_obj1_entry, manage_obj2_entry, manage_layers_entry
+    global manage_name_entry, manage_obj_textbox, manage_layers_entry, model_being_created_img_path
     # Open the model file and read the data
     with open(models_dir + "models.json", 'r') as file:
         data = json.load(file)
 
     # Get the layer entry input and convert it to an int list
-    layers_list_str: list[str] = manage_layers_entry.get().split(",")
+    layers_list_str: list[str] = re.split(r',\s*', manage_layers_entry.get())
     layers_list: list[int] = [int(s) for s in layers_list_str]
 
     # Get the data of the new model to add from the corresponding entries
     model_name = manage_name_entry.get()
+    model_obj_names = re.split(r',\s*', manage_obj_textbox.get("0.0", "end").strip())
     weightsPath = models_dir + model_name + "/default.weights"
     biasesPath = models_dir + model_name + "/default.bias"
 
     data[model_name] = {
-        "obj1Name": manage_obj1_entry.get(),
-        "obj2Name": manage_obj2_entry.get(),
+        "objNames": model_obj_names,
+        "imgPath": model_being_created_img_path,
         "layers": layers_list,
         "weightsPath": weightsPath,
         "biasesPath": biasesPath
@@ -305,8 +361,13 @@ def ask_delete_model() -> None:
         update_optionmenus()
 
         # Set model tab labels to their default values
-        model_obj_1_label.configure(text="Object 1: ___%")
-        model_obj_2_label.configure(text="Object 2: ___%")
+        delete_model_labels()
+
+def select_default_image_path() -> None:
+    global model_being_created_img_path, manage_select_img_label
+    file_path = filedialog.askdirectory(title="Select the folder containing the training data directories")
+    model_being_created_img_path = file_path
+    manage_select_img_label.configure(text=model_being_created_img_path.split('/')[-1])
 
 
 # MODEL TAB CODE
@@ -321,55 +382,31 @@ model_image_label = ctk.CTkLabel(master=tabview.tab(use_model_tab_name), text="N
 model_image_label.place(relx=model_img_rel_pos_x, rely=model_img_rel_pos_y, anchor=ctk.CENTER)
 
 model_predictions_label = ctk.CTkLabel(master=tabview.tab(use_model_tab_name), text="MODEL PREDICTIONS", font=large_underlined_font)
-model_predictions_label.place(relx=0.756, rely=0.2, anchor=ctk.CENTER)
-
-model_obj_1_label = ctk.CTkLabel(master=tabview.tab(use_model_tab_name), text="Object 1: ___%", font=medium_font)
-model_obj_1_label.place(relx=0.756, rely=0.36, anchor=ctk.CENTER)
-
-model_obj_2_label = ctk.CTkLabel(master=tabview.tab(use_model_tab_name), text="Object 2: ___%", font=medium_font)
-model_obj_2_label.place(relx=0.756, rely=0.5, anchor=ctk.CENTER)
+model_predictions_label.place(relx=0.756, rely=0.12, anchor=ctk.CENTER)
 
 
 # TRAIN TAB CODE
 train_model_optionmenu = ctk.CTkOptionMenu(master=tabview.tab(train_model_tab_name), width=340, height=34, font=small_font, values=get_model_name_list(), command=model_optionmenu_func, variable=model_optionmenu_var)
 train_model_optionmenu.place(relx=0.25, rely=0.06, anchor=ctk.CENTER)
 
-train_select_obj1_images_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=150, height=34, text="Select obj1 images", font=small_font, command=train_select_obj1_image_path)
-train_select_obj1_images_button.place(relx=0.6, rely=0.06, anchor=ctk.CENTER)
+train_select_obj_images_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=150, height=34, text="Select training images", font=small_font, command=train_select_image_path)
+train_select_obj_images_button.place(relx=0.6, rely=0.06, anchor=ctk.CENTER)
 
-train_obj1_images_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="None selected", font=smaller_font, text_color="gray", height=10)
-train_obj1_images_label.place(relx=0.6, rely=0.12, anchor=ctk.CENTER)
-
-train_select_obj2_images_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=150, height=34, text="Select obj2 images", font=small_font, command=train_select_obj2_image_path)
-train_select_obj2_images_button.place(relx=0.85, rely=0.06, anchor=ctk.CENTER)
-
-train_obj2_images_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="None selected", font=smaller_font, text_color="gray", height=10)
-train_obj2_images_label.place(relx=0.85, rely=0.12, anchor=ctk.CENTER)
+train_obj_images_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="None selected", font=smaller_font, text_color="gray", height=10)
+train_obj_images_label.place(relx=0.6, rely=0.12, anchor=ctk.CENTER)
 
 
 train_base_model_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="Base Model", font=medium_large_underlined_font)
-train_base_model_label.place(relx=0.25, rely=0.25, anchor=ctk.CENTER)
-
-train_base_obj1_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="Object 1 accuracy: ___%", font=medium_font)
-train_base_obj1_label.place(relx=0.25, rely=0.37, anchor=ctk.CENTER)
-
-train_base_obj2_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="Object 2 accuracy: ___%", font=medium_font)
-train_base_obj2_label.place(relx=0.25, rely=0.49, anchor=ctk.CENTER)
+train_base_model_label.place(relx=0.25, rely=0.18, anchor=ctk.CENTER)
 
 train_base_general_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="General accuracy: ___%", font=medium_font)
-train_base_general_label.place(relx=0.25, rely=0.61, anchor=ctk.CENTER)
+train_base_general_label.place(relx=0.25, rely=0.75, anchor=ctk.CENTER)
 
 train_best_model_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="Best Model", font=medium_large_underlined_font)
-train_best_model_label.place(relx=0.75, rely=0.25, anchor=ctk.CENTER)
-
-train_best_obj1_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="Object 1 accuracy: ___%", font=medium_font)
-train_best_obj1_label.place(relx=0.75, rely=0.37, anchor=ctk.CENTER)
-
-train_best_obj2_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="Object 2 accuracy: ___%", font=medium_font)
-train_best_obj2_label.place(relx=0.75, rely=0.49, anchor=ctk.CENTER)
+train_best_model_label.place(relx=0.75, rely=0.18, anchor=ctk.CENTER)
 
 train_best_general_label = ctk.CTkLabel(master=tabview.tab(train_model_tab_name), text="General accuracy: ___%", font=medium_font)
-train_best_general_label.place(relx=0.75, rely=0.61, anchor=ctk.CENTER)
+train_best_general_label.place(relx=0.75, rely=0.75, anchor=ctk.CENTER)
 
 
 train_button = ctk.CTkButton(master=tabview.tab(train_model_tab_name), width=120, height=34, text="Train", font=medium_font, command=train_model)
@@ -389,19 +426,25 @@ manage_add_model_label = ctk.CTkLabel(master=tabview.tab(manage_models_tab_name)
 manage_add_model_label.place(relx=0.25, rely=0.1, anchor=ctk.CENTER)
 
 manage_name_entry = ctk.CTkEntry(master=tabview.tab(manage_models_tab_name), placeholder_text="Model name", width = 200, font=small_font, justify="center")
-manage_name_entry.place(relx=0.25, rely=0.25, anchor=ctk.CENTER)
+manage_name_entry.place(relx=0.25, rely=0.2, anchor=ctk.CENTER)
 
-manage_obj1_entry = ctk.CTkEntry(master=tabview.tab(manage_models_tab_name), placeholder_text="Object 1 name", width = 200, font=small_font, justify="center")
-manage_obj1_entry.place(relx=0.25, rely=0.39, anchor=ctk.CENTER)
+manage_select_img_dir_button = ctk.CTkButton(master=tabview.tab(manage_models_tab_name), width=120, height=34, text="Select default image folder", font=medium_font, command=select_default_image_path)
+manage_select_img_dir_button.place(relx=0.25, rely=0.31, anchor=ctk.CENTER)
 
-manage_obj2_entry = ctk.CTkEntry(master=tabview.tab(manage_models_tab_name), placeholder_text="Object 2 name", width = 200, font=small_font, justify="center")
-manage_obj2_entry.place(relx=0.25, rely=0.53, anchor=ctk.CENTER)
+manage_select_img_label = ctk.CTkLabel(master=tabview.tab(manage_models_tab_name), text="None selected", font=smaller_font, text_color="gray", height=10)
+manage_select_img_label.place(relx=0.25, rely=0.37, anchor=ctk.CENTER)
 
-manage_layers_entry = ctk.CTkEntry(master=tabview.tab(manage_models_tab_name), placeholder_text="Model layers (separated by ',')", width = 240, font=small_font, justify="center")
-manage_layers_entry.place(relx=0.25, rely=0.67, anchor=ctk.CENTER)
+manage_obj_label = ctk.CTkLabel(master=tabview.tab(manage_models_tab_name), text="Object names (separated by ',')", font=small_font)
+manage_obj_label.place(relx=0.25, rely=0.44, anchor=ctk.CENTER)
+
+manage_obj_textbox = ctk.CTkTextbox(master=tabview.tab(manage_models_tab_name), width = 260, height = 120, font=small_font, wrap="word")
+manage_obj_textbox.place(relx=0.25, rely=0.6, anchor=ctk.CENTER)
+
+manage_layers_entry = ctk.CTkEntry(master=tabview.tab(manage_models_tab_name), placeholder_text="Model layers (separated by ',')", width = 260, font=small_font, justify="center")
+manage_layers_entry.place(relx=0.25, rely=0.79, anchor=ctk.CENTER)
 
 manage_add_model_button = ctk.CTkButton(master=tabview.tab(manage_models_tab_name), width=120, height=34, text="Create model", font=medium_font, command=create_model)
-manage_add_model_button.place(relx=0.25, rely=0.85, anchor=ctk.CENTER)
+manage_add_model_button.place(relx=0.25, rely=0.89, anchor=ctk.CENTER)
 
 manage_remove_model_label = ctk.CTkLabel(master=tabview.tab(manage_models_tab_name), text="REMOVE A MODEL", font=large_underlined_font)
 manage_remove_model_label.place(relx=0.75, rely=0.1, anchor=ctk.CENTER)
