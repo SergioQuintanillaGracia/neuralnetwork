@@ -120,7 +120,7 @@ def load_current_model_labels() -> None:
     model_step = (model_obj_labels_range[1] - model_obj_labels_range[0]) / (model_output_size - 1)
     train_base_step = (train_base_obj_labels_range[1] - train_base_obj_labels_range[0]) / (model_output_size - 1)
     train_best_step = (train_best_obj_labels_range[1] - train_best_obj_labels_range[0]) / (model_output_size - 1)
-    min_step = 0.15
+    min_step = 0.10
     model_step = model_step if model_step < min_step else min_step
     train_base_step = train_base_step if train_base_step < min_step else min_step
     train_best_step = train_best_step if train_best_step < min_step else min_step
@@ -240,7 +240,7 @@ def train_model_loop() -> None:
             save_to_disk = True
 
         bindings.trainModel(current_model_obj_names, current_model_img_paths,
-                            0.2, i + 1, save_to_disk, True, False, 750)
+                            0.2, i + 1, save_to_disk, True, True, -1)
 
         if (i + 1) % 25 == 0:
             update_gen_label(i + 1, generations)

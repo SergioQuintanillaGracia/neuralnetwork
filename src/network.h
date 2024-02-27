@@ -32,6 +32,7 @@ public:
     void setInitialValues(const std::vector<double>& initialValues);
     void computeValues();
     std::vector<double> getValues();
+    std::vector<double> getValuesSoftmax();
 };
 
 

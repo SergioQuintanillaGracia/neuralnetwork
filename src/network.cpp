@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <fstream>
@@ -123,6 +124,25 @@ std::vector<double> Layer::getValues() {
 
     for (Neuron& n : neurons) {
         values.push_back(n.value);
+    }
+
+    return values;
+}
+
+std::vector<double> Layer::getValuesSoftmax() {
+    // Returns the vector formed by applying softmax to the values of the neurons of the layer.
+    // Softmax is calculated like this: exp(i) / (sum(exp(i)))
+    double denominator = 0;
+
+    std::vector<double> values;
+    values.reserve(neurons.size());
+
+    for (Neuron& n : neurons) {
+        denominator += exp(n.value);
+    }
+
+    for (Neuron& n : neurons) {
+        values.push_back(exp(n.value) / denominator);
     }
 
     return values;
@@ -440,7 +460,7 @@ std::vector<double> NeuralNetwork::compute(std::vector<double>& input) {
     }
 
     // Return the computed values.
-    return outputLayer->getValues();
+    return outputLayer->getValuesSoftmax();
 }
 
 void NeuralNetwork::printNeuronsData() {
@@ -518,17 +538,9 @@ double GeneticNetworkTrainer::fitness(NeuralNetwork* network, const std::vector<
         for (int j = 0; j < fitnessData[i].size(); j++) {
             // fitnessData[i][j] corresponds to a single ith object's image data, a vector with the value of each neuron after processing the image.
             // If fitnessData[i][j][i] is the greatest value of the vector, the network correctly classified the image.
-            bool correct = true;
+            auto maxIt = std::max_element(fitnessData[i][j].begin(), fitnessData[i][j].end());
 
-            for (int k = 0; k < fitnessData[i][j].size(); k++) {
-                if (k != i && fitnessData[i][j][k] >= fitnessData[i][j][i]) {
-                    // Some neuron that doesn't correspond with this object's neuron has a greater value, so the network didn't correctly label the image.
-                    correct = false;
-                    break;
-                }
-            }
-
-            if (correct) {
+            if (std::distance(fitnessData[i][j].begin(), maxIt) == i) {
                 points++;
             }
         }
@@ -541,25 +553,17 @@ std::string GeneticNetworkTrainer::getAccuracyString(const std::vector<std::stri
     std::vector<std::vector<std::vector<double>>> fitnessData = getFitnessData(baseNetwork, paths, imageLimit);
     // Stores the correct labeled images of each object i at its ith position.
     std::vector<double> correctCount(objNames.size(), 0);
-    std::vector<int> totalSizes(objNames.size(), 0);
+    std::vector<int> totalCount(objNames.size(), 0);
 
     for (int i = 0; i < fitnessData.size(); i++) {
-        totalSizes[i] += fitnessData[i].size();
+        totalCount[i] += fitnessData[i].size();
         // fitnessData[i] corresponds to the ith object's answer data.
         for (int j = 0; j < fitnessData[i].size(); j++) {
             // fitnessData[i][j] corresponds to a single ith object's image data, a vector with the value of each neuron after processing the image.
             // If fitnessData[i][j][i] is the greatest value of the vector, the network correctly classified the image.
-            bool correct = true;
+            auto maxIt = std::max_element(fitnessData[i][j].begin(), fitnessData[i][j].end());
 
-            for (int k = 0; k < fitnessData[i][j].size(); k++) {
-                if (k != i && fitnessData[i][j][k] >= fitnessData[i][j][i]) {
-                    // Some neuron that doesn't correspond with this object's neuron has a greater value, so the network didn't correctly label the image.
-                    correct = false;
-                    break;
-                }
-            }
-
-            if (correct) {
+            if (std::distance(fitnessData[i][j].begin(), maxIt) == i) {
                 correctCount[i]++;
             }
         }
@@ -568,11 +572,11 @@ std::string GeneticNetworkTrainer::getAccuracyString(const std::vector<std::stri
     std::string accuracyString = "";
     
     for (int i = 0; i < correctCount.size(); i++) {
-        accuracyString.append(objNames[i] + ": " + std::to_string(correctCount[i] / totalSizes[i] * 100) + "% | ");
+        accuracyString.append(objNames[i] + ": " + std::to_string(correctCount[i] / totalCount[i] * 100) + "% | ");
     }
 
     accuracyString.append("General Accuracy: " + std::to_string(static_cast<double>(std::accumulate(correctCount.begin(), correctCount.end(), 0))
-                          / std::accumulate(totalSizes.begin(), totalSizes.end(), 0) * 100) + "%");
+                          / std::accumulate(totalCount.begin(), totalCount.end(), 0) * 100) + "%");
 
     return accuracyString;
 }
