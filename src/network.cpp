@@ -540,9 +540,11 @@ double GeneticNetworkTrainer::fitness(NeuralNetwork* network, const std::vector<
 std::string GeneticNetworkTrainer::getAccuracyString(const std::vector<std::string>& objNames, const std::vector<std::string>& paths, int imageLimit) {
     std::vector<std::vector<std::vector<double>>> fitnessData = getFitnessData(baseNetwork, paths, imageLimit);
     // Stores the correct labeled images of each object i at its ith position.
-    std::vector<int> correctCount(objNames.size(), 0);
+    std::vector<double> correctCount(objNames.size(), 0);
+    std::vector<int> totalSizes(objNames.size(), 0);
 
     for (int i = 0; i < fitnessData.size(); i++) {
+        totalSizes[i] += fitnessData[i].size();
         // fitnessData[i] corresponds to the ith object's answer data.
         for (int j = 0; j < fitnessData[i].size(); j++) {
             // fitnessData[i][j] corresponds to a single ith object's image data, a vector with the value of each neuron after processing the image.
@@ -563,21 +565,22 @@ std::string GeneticNetworkTrainer::getAccuracyString(const std::vector<std::stri
         }
     }
 
-    std::string accuracyString = obj1 + ": " + std::to_string(right1 / fitnessData[0].size() * 100) + "% | " + obj2 + ": "
-                                    + std::to_string(right2 / fitnessData[1].size() * 100) + "% | General Accuracy: "
-                                    + std::to_string((right1 + right2) / (fitnessData[0].size() + fitnessData[1].size()) * 100) + "%";
+    std::string accuracyString = "";
     
     for (int i = 0; i < correctCount.size(); i++) {
-        accuracyString.append(objNames[i] + ": " + std::to_string(correctCount[i] / fitnessData[0].size() * 100) + "% | ");
+        accuracyString.append(objNames[i] + ": " + std::to_string(correctCount[i] / totalSizes[i] * 100) + "% | ");
     }
-    accuracyString.append("General Accuracy: " + std::accumulate(correctCount.begin(), correctCount.end(), 0) / fitnessData[0].size() * 100 + "%");
+
+    accuracyString.append("General Accuracy: " + std::to_string(static_cast<double>(std::accumulate(correctCount.begin(), correctCount.end(), 0))
+                          / std::accumulate(totalSizes.begin(), totalSizes.end(), 0) * 100) + "%");
 
     return accuracyString;
 }
     
 std::vector<std::vector<std::vector<double>>> GeneticNetworkTrainer::getFitnessData(NeuralNetwork* network, const std::vector<std::string>& paths, int imageLimit) {
     // Returns a vector with the following structure:
-    // {{obj1img1result, obj2img2result, ...}, {obj2img1.result, obj2img2.result, ...}, ...}
+    // {{obj1img1result, obj2img2result, ...}, {obj2img1.result, obj2img2.result, ...}, ...},
+    // where objnimgmresult are vectors with the output values of every neuron in the output layer.
     std::vector<std::vector<std::vector<double>>> sampleData;
 
     for (const std::string& path : paths) {
@@ -595,6 +598,7 @@ std::vector<std::vector<std::vector<double>>> GeneticNetworkTrainer::getFitnessD
         for (int i = 0; i < limit; i++) {
             std::vector<double> input = extractBrightness(imagePaths[i], true);
             std::vector<double> result = network->compute(input);
+
             data.push_back(result);
         }
         sampleData.push_back(data);
