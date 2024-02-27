@@ -9,7 +9,7 @@ import time
 import os
 
 # Configure scaling and theme
-scale = 2
+scale = 1
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("blue")
 ctk.set_window_scaling(scale)
@@ -126,10 +126,11 @@ def model_select_image() -> None:
 
     # Get the model answer and set the percentages accordingly
     model_answer = bindings.getModelAnswer(current_image_path, False)
-    obj1_prefix = "> " if model_answer[0] <= 0.5 else ""
-    obj2_prefix = "> " if model_answer[0] > 0.5 else ""
-    model_obj_1_label.configure(text = obj1_prefix + current_model_obj1_name + ": " + str(round((1 - model_answer[0]) * 100, 2)) + "%")
-    model_obj_2_label.configure(text = obj2_prefix + current_model_obj2_name + ": " + str(round(model_answer[0] * 100, 2)) + "%")
+    print(model_answer)
+    obj1_prefix = "> " if model_answer[0] >= model_answer[1] else ""
+    obj2_prefix = "> " if model_answer[1] > model_answer[0] else ""
+    model_obj_1_label.configure(text = obj1_prefix + current_model_obj1_name + ": " + str(round(model_answer[0] / (model_answer[0] + model_answer[1]) * 100, 2)) + "%")
+    model_obj_2_label.configure(text = obj2_prefix + current_model_obj2_name + ": " + str(round(model_answer[1] / (model_answer[0] + model_answer[1]) * 100, 2)) + "%")
 
 
 # TRAIN TAB FUNCTIONS
@@ -150,7 +151,7 @@ def train_model_loop() -> None:
     bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
     bindings.initializeTrainer(models_dir + current_model_name + "/training", 0, 0.1, 24)
     print("Images: " + current_model_obj1_image_path, current_model_obj2_image_path)
-    bindings.initializeCache(current_model_obj1_image_path, current_model_obj2_image_path)
+    bindings.initializeCache([current_model_obj1_image_path, current_model_obj2_image_path],)
     generations: int = int(train_gen_entry.get())
     update_gen_label(0, generations)
     update_training_model_information(True)
@@ -165,8 +166,8 @@ def train_model_loop() -> None:
             update_training_model_information(False)
             save_to_disk = True
 
-        bindings.trainModel(current_model_obj1_name, current_model_obj1_image_path, current_model_obj2_name,
-                            current_model_obj2_image_path, 0.2, i + 1, save_to_disk, True, False, -1)
+        bindings.trainModel([current_model_obj1_name, current_model_obj2_name], [current_model_obj1_image_path, current_model_obj2_image_path],
+                            0.2, i + 1, save_to_disk, True, False, -1)
 
         if (i + 1) % 25 == 0:
             update_gen_label(i + 1, generations)
@@ -176,7 +177,7 @@ def train_model_loop() -> None:
     train_gen_label.place_forget()
 
 def update_training_model_information(also_set_to_base: bool = False) -> None:
-    accuracy_string = bindings.getAccuracyString(current_model_obj1_name, current_model_obj1_image_path, current_model_obj2_name, current_model_obj2_image_path, -1)
+    accuracy_string = bindings.getAccuracyString([current_model_obj1_name, current_model_obj2_name], [current_model_obj1_image_path, current_model_obj2_image_path], -1)
     split_accuracy_string = accuracy_string.split(" | ")
     obj1_accuracy = float(split_accuracy_string[0].split(": ")[1][:-1])
     obj2_accuracy = float(split_accuracy_string[1].split(": ")[1][:-1])

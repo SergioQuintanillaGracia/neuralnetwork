@@ -23,9 +23,7 @@ void loadModel(std::vector<int> layers, std::string weightsPath, std::string bia
         delete neuralNetwork;
         neuralNetwork = nullptr;
     }
-
-    std::string basePath = "../networks/circles_circumf_16x16/256_96_48_1";
-    std::string pointsPath = "2728.94_3000";
+    
     neuralNetwork = new NeuralNetwork(layers, weightsPath, biasesPath);
 }
 
@@ -34,13 +32,13 @@ std::vector<double> getModelAnswer(std::string imagePath, bool useCache = false)
     return neuralNetwork->compute(input);
 }
 
-std::string getAccuracyString(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, int imageLimit = -1) {
-    return trainer->getAccuracyString(obj1, path1, obj2, path2, imageLimit);
+std::string getAccuracyString(const std::vector<std::string>& objNames, const std::vector<std::string>& paths, int imageLimit = -1) {
+    return trainer->getAccuracyString(objNames, paths, imageLimit);
 }
 
-void initializeCache(std::string path1, std::string path2) {
+void initializeCache(const std::vector<std::string>& paths) {
     if (trainer) {
-        trainer->initializeCache(path1, path2);
+        trainer->initializeCache(paths);
     } else {
         std::cerr << "Could not initialize cache, as no GeneticNetworkTrainer has been initialized yet.\n";
     }
@@ -56,12 +54,12 @@ void initializeTrainer(std::string& trainPath, double wMutation, double bMutatio
     std::cout << "GeneticNetworkTrainer initialized\n";
 }
 
-void trainModel(std::string& obj1, std::string& path1, std::string& obj2, std::string& path2, double rangeRandomness,
+void trainModel(const std::vector<std::string>& objNames, const std::vector<std::string>& paths, double rangeRandomness,
                 int currentGen, bool writeNetworkData, bool multithread = true, bool enableOutput = false,
                 int imageLimit = -1) {
 
     if (trainer) {
-        trainer->train(obj1, path1, obj2, path2, rangeRandomness, currentGen, writeNetworkData, multithread, enableOutput, imageLimit);
+        trainer->train(objNames, paths, rangeRandomness, currentGen, writeNetworkData, multithread, enableOutput, imageLimit);
     } else {
         std::cerr << "No trainer has been initialized. Run initializeTrainer() before training the model.\n";
     }

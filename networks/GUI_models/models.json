@@ -54,7 +54,7 @@
       784,
       128,
       64,
-      1
+      2
     ],
     "weightsPath": "./networks/GUI_models/2_3_28x28/default.weights",
     "biasesPath": "./networks/GUI_models/2_3_28x28/default.bias"
