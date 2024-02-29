@@ -10,7 +10,7 @@ import os
 import re
 
 # Configure scaling and theme
-scale = 2
+scale = 1
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("blue")
 ctk.set_window_scaling(scale)
@@ -22,6 +22,14 @@ app.geometry("940x560")
 app.title("NeuralNetwork GUI")
 
 # Variables
+threads = 22
+update_gen_label_interval = 25
+update_model_accuracy_interval = 100
+save_to_disk_interval = 250
+image_limit = 1000
+weights_mutation_range = 0.05
+biases_mutation_range = 0.05
+mutation_center_offset_range = 0.2
 models_dir = "./networks/GUI_models/"
 current_model_name: str = None
 current_model_obj_names: list[str] = []
@@ -90,7 +98,6 @@ def get_model_name_list() -> list[str]:
 def get_obj_to_img_directories(path) -> list[str]:
     img_paths: list[str] = []
     for obj in current_model_obj_names:
-        print(obj)
         img_paths.append(os.path.join(path, obj))
     print("Loaded image paths: ", end="")
     print(img_paths)
@@ -250,7 +257,7 @@ def train_select_image_path(file_path) -> None:
 def train_model_loop() -> None:
     global current_model_obj_names, current_model_img_paths
     bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
-    bindings.initializeTrainer(models_dir + current_model_name + "/training", 0.05, 0.05, 18)
+    bindings.initializeTrainer(models_dir + current_model_name + "/training", weights_mutation_range, biases_mutation_range, threads)
     print("Images: ", end=" ")
     print(current_model_img_paths)
     bindings.initializeCache(current_model_img_paths)
@@ -264,14 +271,16 @@ def train_model_loop() -> None:
     for i in range(generations):
         save_to_disk = False
 
-        if (i + 1) % 250 == 0 or i + 1 == generations:
-            update_training_model_information(False)
+        if (i + 1) % save_to_disk_interval == 0 or i + 1 == generations:
             save_to_disk = True
 
         bindings.trainModel(current_model_obj_names, current_model_img_paths,
-                            0.2, i + 1, save_to_disk, True, True, 200)
+                            mutation_center_offset_range, i + 1, save_to_disk, True, True, image_limit)
 
-        if (i + 1) % 25 == 0:
+        if (i + 1) % update_model_accuracy_interval == 0 or i + 1 == generations:
+            update_training_model_information(False)
+        
+        if (i + 1) % update_gen_label_interval == 0:
             update_gen_label(i + 1, generations)
             time.sleep(0.1)
     
@@ -279,7 +288,7 @@ def train_model_loop() -> None:
     train_gen_label.place_forget()
 
 def update_training_model_information(also_set_to_base: bool = False) -> None:
-    accuracy_string: str = bindings.getAccuracyString(current_model_obj_names, current_model_img_paths, 200)
+    accuracy_string: str = bindings.getAccuracyString(current_model_obj_names, current_model_img_paths, image_limit)
     split_accuracy_string: list[str] = accuracy_string.split(" | ")
     obj_accuracy_list: list[float] = [float(el.split(": ")[1][:-1]) for el in split_accuracy_string[:-1]]
     general_accuracy: float = float(split_accuracy_string[-1].split(": ")[1][:-1])

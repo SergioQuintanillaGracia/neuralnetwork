@@ -2,6 +2,7 @@
 #include <chrono>
 #include <cmath>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <mutex>
 #include <numeric>
@@ -380,6 +381,9 @@ void NeuralNetwork::writeWeightsToFile(const std::string& weightsPath) {
         return;
     }
 
+    // Set a higher precision for storing the values.
+    fileW << std::fixed << std::setprecision(20);
+
     // Iterate through each subvector.
     for (size_t i = 0; i < weights.size(); i++) {
         int currentLayerSize = neuronsPerLayer[i];
@@ -408,6 +412,9 @@ void NeuralNetwork::writeBiasesToFile(const std::string& biasesPath) {
         std::cerr << "Could not open bias file for writing: " << biasesPath << std::endl;
         return;
     }
+
+    // Set a higher precision for storing the values.
+    fileB << std::fixed << std::setprecision(20);
 
     // Iterate through each layer except for the first one.
     for (size_t i = 1; i < neuronsPerLayer.size(); i++) {
@@ -552,7 +559,7 @@ double GeneticNetworkTrainer::fitness(NeuralNetwork* network, const std::vector<
     int min = correct[std::distance(correct.begin(), std::min_element(correct.begin(), correct.end()))];
     max = max != 0 ? max : 1;
 
-    return points * (0.5 * (1 - (max - min) / max) + 0.5);
+    return points * (0.2 * (1 - (max - min) / max) + 0.8);
 }
 
 std::string GeneticNetworkTrainer::getAccuracyString(const std::vector<std::string>& objNames, const std::vector<std::string>& paths, int imageLimit) {

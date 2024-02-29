@@ -1,21 +1,4 @@
 {
-  "0_1_2_3": {
-    "objNames": [
-      "0",
-      "1",
-      "2",
-      "3"
-    ],
-    "imgPath": "/home/sergio/Repos/NeuralNetwork/training/mnist_png/0123",
-    "layers": [
-      784,
-      192,
-      96,
-      4
-    ],
-    "weightsPath": "./networks/GUI_models/0_1_2_3/default.weights",
-    "biasesPath": "./networks/GUI_models/0_1_2_3/default.bias"
-  },
   "digits": {
     "objNames": [
       "0",
@@ -48,7 +31,7 @@
       "4",
       "5"
     ],
-    "imgPath": "/home/sergio/Repos/NeuralNetwork/training/mnist_png/012345_backup",
+    "imgPath": "/home/sergio/Repos/NeuralNetwork/training/mnist_png/012345",
     "layers": [
       784,
       256,
