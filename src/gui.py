@@ -42,11 +42,11 @@ train_obj_images_label = None
 train_gen_label = None
 train_gen_entry = None
 train_base_obj_labels: list = []
-train_base_obj_labels_range: list[float] = (0.26, 0.7)
+train_base_obj_labels_range: list[float] = (0.26, 0.73)
 train_base_obj_labels_x: float = 0.25
 train_base_general_label = None
 train_best_obj_labels: list = []
-train_best_obj_labels_range: list[float] = (0.26, 0.7)
+train_best_obj_labels_range: list[float] = (0.26, 0.73)
 train_best_obj_labels_x: float = 0.75
 train_best_general_label = None
 manage_name_entry = None
@@ -122,9 +122,9 @@ def load_current_model_labels() -> None:
     # Delete previous model labels
     delete_model_labels()
     
-    model_step = (model_obj_labels_range[1] - model_obj_labels_range[0]) / (model_output_size - 1)
-    train_base_step = (train_base_obj_labels_range[1] - train_base_obj_labels_range[0]) / (model_output_size - 1)
-    train_best_step = (train_best_obj_labels_range[1] - train_best_obj_labels_range[0]) / (model_output_size - 1)
+    model_step = (model_obj_labels_range[1] - model_obj_labels_range[0]) / (model_output_size)
+    train_base_step = (train_base_obj_labels_range[1] - train_base_obj_labels_range[0]) / (model_output_size)
+    train_best_step = (train_best_obj_labels_range[1] - train_best_obj_labels_range[0]) / (model_output_size)
     min_step = 0.10
     model_step = model_step if model_step < min_step else min_step
     train_base_step = train_base_step if train_base_step < min_step else min_step
@@ -169,29 +169,52 @@ def update_default_image_path() -> None:
 
 # MODEL TAB FUNCTIONS
 def model_optionmenu_func(choice) -> None:
-    global current_model_name
+    global current_model_name, current_image_path
     current_model_name = choice
     load_current_model_data()
     load_current_model_labels()
+
+    if current_image_path:
+        # Check if the new model can process the image
+        image = Image.open(current_image_path)
+        width, height = image.size
+        if (width * height == current_model_layers[0]):
+            # The model can process the image
+            process_image(current_image_path)
+        else:
+            # The model cannot process the image
+            model_image_label.configure(text="No image selected", image="")
+            current_image_path = None
+
     print("Switched to model: " + choice)
     
 def model_select_image() -> None:
     global current_image_path, model_image_label
-    file_path = filedialog.askopenfilename(title="Select an image", filetypes=[("Images", ("*.png", "*.jpg"))])
-    current_image_path = file_path
-    original_image = Image.open(current_image_path)
-    scaled_image = original_image.resize((model_img_res_x * scale, model_img_res_y * scale), Image.NEAREST)
-    img = ctk.CTkImage(light_image=scaled_image, dark_image=scaled_image, size=(model_img_res_x, model_img_res_y))
-    model_image_label.configure(text="", image=img)
-    print("Loaded image: " + file_path)
 
+    if not current_model_name:
+        messagebox.showerror("Cannot select image", "Please, select a model before selecting an image.")
+        return
+
+    file_path = filedialog.askopenfilename(title="Select an image", filetypes=[("Images", ("*.png", "*.jpg"))])
+    
+    if file_path:
+        current_image_path = file_path
+        original_image = Image.open(current_image_path)
+        scaled_image = original_image.resize((model_img_res_x * scale, model_img_res_y * scale), Image.NEAREST)
+        img = ctk.CTkImage(light_image=scaled_image, dark_image=scaled_image, size=(model_img_res_x, model_img_res_y))
+        model_image_label.configure(text="", image=img)
+        print("Loaded image: " + file_path)
+
+        process_image(current_image_path)
+
+def process_image(current_image_path: str) -> None:
     # Get the model answer and set the percentages accordingly
     model_answer = bindings.getModelAnswer(current_image_path, False)
     print("Model answer: ", end="")
     print(model_answer)
     set_model_answer(model_answer)
 
-def set_model_answer(model_answer):
+def set_model_answer(model_answer: list[float]):
     # Find the highest element's index and the total sum of the answers
     answer_sum: float = 0
     highest: float = -1
@@ -214,7 +237,8 @@ def set_model_answer(model_answer):
 # TRAIN TAB FUNCTIONS
 def train_select_image_path_ask() -> None:
     file_path = filedialog.askdirectory(title="Select the folder containing the training data directories")
-    train_select_image_path(file_path)
+    if file_path:
+        train_select_image_path(file_path)
 
 def train_select_image_path(file_path) -> None:
     global current_model_img_path, current_model_img_paths
@@ -274,6 +298,21 @@ def update_gen_label(gen: int, max_gen: int) -> None:
     train_gen_label.configure(text = str(gen) + " / " + str(max_gen))
 
 def train_model() -> None:
+    global train_gen_entry
+
+    if not current_model_name:
+        messagebox.showerror("Couldn't start training", "Training cannot start, as there is no model selected.")
+        return
+    
+    if not current_model_img_path:
+        messagebox.showerror("Couldn't start training", "Training cannot start, as no image folder has been selected.")
+        return
+
+    # Check if the train_gen_entry input is correct
+    if not train_gen_entry.get().isdigit() or not int(train_gen_entry.get()) >= 1:
+        messagebox.showerror("Couldn't start training", "Please, enter a valid generation number.")
+        return
+
     print("Deleting previous training files")
     for filename in os.listdir(models_dir + current_model_name + "/training/"):
         file_path = os.path.join(models_dir + current_model_name + "/training/", filename)
@@ -330,19 +369,39 @@ def update_optionmenus() -> None:
 
 def create_model() -> None:
     global manage_name_entry, manage_obj_textbox, manage_layers_entry, model_being_created_img_path
+
+    model_name = manage_name_entry.get()
+    model_obj_names_str: str = manage_obj_textbox.get("0.0", "end").strip()
+    layers_str: str = manage_layers_entry.get()
+
+    if not (model_name and model_being_created_img_path and model_obj_names_str and layers_str):
+        messagebox.showerror("Couldn't create model", "The model could not be created. Please, fill every required field.")
+        return
+
+    # Convert the layer string to a list of ints
+    layers_list_str: list[str] = re.split(r',\s*', layers_str)
+    layers_list: list[int] = [int(s) for s in layers_list_str]
+
+    if len(layers_list) < 2:
+        messagebox.showerror("Couldn't create model", "A model with less than 2 layers cannot be created.")
+        return
+
+    # Process the data
+    model_obj_names = re.split(r',\s*', model_obj_names_str)
+    weightsPath = models_dir + model_name + "/default.weights"
+    biasesPath = models_dir + model_name + "/default.bias"
+
+    if len(model_obj_names) < 2:
+        messagebox.showerror("Couldn't create model", "A model with less than 2 objects cannot be created.")
+        return
+
     # Open the model file and read the data
     with open(models_dir + "models.json", 'r') as file:
         data = json.load(file)
-
-    # Get the layer entry input and convert it to an int list
-    layers_list_str: list[str] = re.split(r',\s*', manage_layers_entry.get())
-    layers_list: list[int] = [int(s) for s in layers_list_str]
-
-    # Get the data of the new model to add from the corresponding entries
-    model_name = manage_name_entry.get()
-    model_obj_names = re.split(r',\s*', manage_obj_textbox.get("0.0", "end").strip())
-    weightsPath = models_dir + model_name + "/default.weights"
-    biasesPath = models_dir + model_name + "/default.bias"
+    
+    if model_name in data:
+        messagebox.showerror("Couldn't create model", "A model with that name already exists.")
+        return
 
     data[model_name] = {
         "objNames": model_obj_names,
@@ -357,7 +416,7 @@ def create_model() -> None:
         json.dump(data, file, indent=2)
     
     # Create model folders
-    os.makedirs(os.path.join(models_dir, manage_name_entry.get(), "training"))
+    os.makedirs(os.path.join(models_dir, model_name, "training"))
 
     # Initialize the model with random weights and biases
     bindings.initializeModelFiles(layers_list, weightsPath, biasesPath)
@@ -367,6 +426,12 @@ def create_model() -> None:
 def ask_delete_model() -> None:
     global model_optionmenu_var, model_model_optionmenu, train_model_optionmenu
     model_to_delete = model_optionmenu_var.get()
+
+    # Select Model is the placeholder used for when there is no model selected. The delete button
+    # should not try to delete anything when the model name is "Select Model".
+    if model_to_delete == "Select Model":
+        return
+
     response = messagebox.askyesno("Delete model", f"You are about to permanently delete \"{model_to_delete}\". Do you want to proceed?")
     
     if response:
@@ -391,8 +456,9 @@ def ask_delete_model() -> None:
 def select_default_image_path() -> None:
     global model_being_created_img_path, manage_select_img_label
     file_path = filedialog.askdirectory(title="Select the folder containing the training data directories")
-    model_being_created_img_path = file_path
-    manage_select_img_label.configure(text=model_being_created_img_path.split('/')[-1])
+    if file_path:
+        model_being_created_img_path = file_path
+        manage_select_img_label.configure(text=model_being_created_img_path.split('/')[-1])
 
 
 # MODEL TAB CODE
@@ -403,7 +469,7 @@ model_model_optionmenu.place(relx=0.172, rely=0.92, anchor=ctk.CENTER)
 model_select_image_button = ctk.CTkButton(master=tabview.tab(use_model_tab_name), width=150, height=34, text="Select Image", font=small_font, command=model_select_image)
 model_select_image_button.place(relx=0.41, rely=0.92, anchor=ctk.CENTER)
 
-model_image_label = ctk.CTkLabel(master=tabview.tab(use_model_tab_name), text="No image selected")
+model_image_label = ctk.CTkLabel(master=tabview.tab(use_model_tab_name), text="No image selected", font=small_font)
 model_image_label.place(relx=model_img_rel_pos_x, rely=model_img_rel_pos_y, anchor=ctk.CENTER)
 
 model_predictions_label = ctk.CTkLabel(master=tabview.tab(use_model_tab_name), text="MODEL PREDICTIONS", font=large_underlined_font)

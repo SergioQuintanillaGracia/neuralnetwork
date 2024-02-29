@@ -1,34 +1,4 @@
 {
-  "2_3_28x28": {
-    "objNames": [
-      "2",
-      "3"
-    ],
-    "layers": [
-      784,
-      128,
-      64,
-      2
-    ],
-    "weightsPath": "./networks/GUI_models/2_3_28x28/default.weights",
-    "biasesPath": "./networks/GUI_models/2_3_28x28/default.bias"
-  },
-  "0_1_2": {
-    "objNames": [
-      "0",
-      "1",
-      "2"
-    ],
-    "imgPath": "/home/sergio/Repos/NeuralNetwork/training/mnist_png/training/012",
-    "layers": [
-      784,
-      128,
-      64,
-      3
-    ],
-    "weightsPath": "./networks/GUI_models/0_1_2/default.weights",
-    "biasesPath": "./networks/GUI_models/0_1_2/default.bias"
-  },
   "0_1_2_3": {
     "objNames": [
       "0",
@@ -87,5 +57,20 @@
     ],
     "weightsPath": "./networks/GUI_models/012345/default.weights",
     "biasesPath": "./networks/GUI_models/012345/default.bias"
+  },
+  "test": {
+    "objNames": [
+      "1",
+      "2",
+      "3"
+    ],
+    "imgPath": "/home/sergio/Repos/NeuralNetwork/training/mnist_png/012345",
+    "layers": [
+      2,
+      3,
+      1
+    ],
+    "weightsPath": "./networks/GUI_models/test/default.weights",
+    "biasesPath": "./networks/GUI_models/test/default.bias"
   }
 }
