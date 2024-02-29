@@ -19,7 +19,7 @@ int main() {
     std::vector<std::string> paths = {"../training/mnist_png/training/0", "../training/mnist_png/training/1", "../training/mnist_png/training/2"};
 
     trainer.initializeCache(paths);
-    std::cout << trainer.getAccuracyString(objNames, paths) << std::endl;
+    // std::cout << trainer.getAccuracyString(objNames, paths) << std::endl;
 
     for (int i = 0; i < 100; i++) {
         trainer.train(objNames, paths, 0.15, i + 1, (i + 1) % 20 == 0, true, -1);

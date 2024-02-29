@@ -10,7 +10,7 @@ import os
 import re
 
 # Configure scaling and theme
-scale = 1
+scale = 2
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("blue")
 ctk.set_window_scaling(scale)
@@ -29,7 +29,7 @@ current_model_layers: list[int] = None
 current_model_weights_path: str = None
 current_model_biases_path: str = None
 current_model_img_path: str = None
-current_model_img_paths: list[str] = None
+current_model_img_paths: list[str] = []
 model_being_created_img_path: str = None
 
 model_image_label: str = None
@@ -87,9 +87,14 @@ def get_model_name_list() -> list[str]:
     dir_list: list[str] = [entry.name for entry in it if entry.is_dir()]
     return dir_list
 
-def get_directories(path) -> None:
-    print("Getting directories inside: " + path)
-    return [os.path.join(path, name) for name in os.listdir(path) if os.path.isdir(os.path.join(path, name))]
+def get_obj_to_img_directories(path) -> list[str]:
+    img_paths: list[str] = []
+    for obj in current_model_obj_names:
+        print(obj)
+        img_paths.append(os.path.join(path, obj))
+    print("Loaded image paths: ", end="")
+    print(img_paths)
+    return img_paths
 
 def load_current_model_data() -> None:
     global current_model_obj_names, current_model_img_path, current_model_img_paths, current_model_layers, current_model_weights_path, current_model_biases_path
@@ -104,7 +109,7 @@ def load_current_model_data() -> None:
     current_model_biases_path = data[current_model_name]["biasesPath"]
 
     train_select_image_path(current_model_img_path)
-    current_model_img_paths = get_directories(current_model_img_path)
+    current_model_img_paths = get_obj_to_img_directories(current_model_img_path)
 
     bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
 
@@ -214,14 +219,14 @@ def train_select_image_path_ask() -> None:
 def train_select_image_path(file_path) -> None:
     global current_model_img_path, current_model_img_paths
     current_model_img_path = file_path
-    current_model_img_paths = get_directories(current_model_img_path)
+    current_model_img_paths = get_obj_to_img_directories(current_model_img_path)
     update_default_image_path()
     train_obj_images_label.configure(text=current_model_img_path.split('/')[-1])
 
 def train_model_loop() -> None:
     global current_model_obj_names, current_model_img_paths
     bindings.loadModel(current_model_layers, current_model_weights_path, current_model_biases_path)
-    bindings.initializeTrainer(models_dir + current_model_name + "/training", 0.05, 0.05, 22)
+    bindings.initializeTrainer(models_dir + current_model_name + "/training", 0.05, 0.05, 18)
     print("Images: ", end=" ")
     print(current_model_img_paths)
     bindings.initializeCache(current_model_img_paths)
@@ -235,12 +240,12 @@ def train_model_loop() -> None:
     for i in range(generations):
         save_to_disk = False
 
-        if (i + 1) % 25 == 0 or i + 1 == generations:
+        if (i + 1) % 250 == 0 or i + 1 == generations:
             update_training_model_information(False)
             save_to_disk = True
 
         bindings.trainModel(current_model_obj_names, current_model_img_paths,
-                            0.2, i + 1, save_to_disk, True, True, -1)
+                            0.2, i + 1, save_to_disk, True, True, 200)
 
         if (i + 1) % 25 == 0:
             update_gen_label(i + 1, generations)
@@ -250,7 +255,7 @@ def train_model_loop() -> None:
     train_gen_label.place_forget()
 
 def update_training_model_information(also_set_to_base: bool = False) -> None:
-    accuracy_string: str = bindings.getAccuracyString(current_model_obj_names, current_model_img_paths, -1)
+    accuracy_string: str = bindings.getAccuracyString(current_model_obj_names, current_model_img_paths, 200)
     split_accuracy_string: list[str] = accuracy_string.split(" | ")
     obj_accuracy_list: list[float] = [float(el.split(": ")[1][:-1]) for el in split_accuracy_string[:-1]]
     general_accuracy: float = float(split_accuracy_string[-1].split(": ")[1][:-1])
@@ -310,6 +315,8 @@ def update_to_latest_model() -> None:
         train_base_obj_labels[i].configure(text=train_best_obj_labels[i].cget("text"))
 
     train_base_general_label.configure(text=train_best_general_label.cget("text"))
+
+    load_current_model_data()
 
 
 # MANAGE TAB FUNCTIONS

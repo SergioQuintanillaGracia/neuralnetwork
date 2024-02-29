@@ -460,7 +460,7 @@ std::vector<double> NeuralNetwork::compute(std::vector<double>& input) {
     }
 
     // Return the computed values.
-    return outputLayer->getValuesSoftmax();
+    return outputLayer->getValues();
 }
 
 void NeuralNetwork::printNeuronsData() {
@@ -530,7 +530,8 @@ GeneticNetworkTrainer::GeneticNetworkTrainer(NeuralNetwork* baseNet, const std::
 
 double GeneticNetworkTrainer::fitness(NeuralNetwork* network, const std::vector<std::string>& paths, int imageLimit) {
     std::vector<std::vector<std::vector<double>>> fitnessData = getFitnessData(network, paths, imageLimit);
-
+    std::vector<int> correct;
+    correct.resize(fitnessData.size());
     double points = 0;
 
     for (int i = 0; i < fitnessData.size(); i++) {
@@ -541,17 +542,23 @@ double GeneticNetworkTrainer::fitness(NeuralNetwork* network, const std::vector<
             auto maxIt = std::max_element(fitnessData[i][j].begin(), fitnessData[i][j].end());
 
             if (std::distance(fitnessData[i][j].begin(), maxIt) == i) {
+                correct[i]++;
                 points++;
             }
         }
     }
 
-    return points;
+    double max = correct[std::distance(correct.begin(), std::max_element(correct.begin(), correct.end()))];
+    int min = correct[std::distance(correct.begin(), std::min_element(correct.begin(), correct.end()))];
+    max = max != 0 ? max : 1;
+
+    return points * (0.5 * (1 - (max - min) / max) + 0.5);
 }
 
 std::string GeneticNetworkTrainer::getAccuracyString(const std::vector<std::string>& objNames, const std::vector<std::string>& paths, int imageLimit) {
     std::vector<std::vector<std::vector<double>>> fitnessData = getFitnessData(baseNetwork, paths, imageLimit);
-    // Stores the correct labeled images of each object i at its ith position.
+
+    // Store the correct and total labeled images of each object i at its ith position.
     std::vector<double> correctCount(objNames.size(), 0);
     std::vector<int> totalCount(objNames.size(), 0);
 
@@ -598,7 +605,7 @@ std::vector<std::vector<std::vector<double>>> GeneticNetworkTrainer::getFitnessD
         std::vector<std::vector<double>> data;
         data.reserve(limit);
 
-        // If imageLimit is greater than 0, imageLimit images.
+        // If imageLimit is greater than 0, imageLimit images will be processed.
         for (int i = 0; i < limit; i++) {
             std::vector<double> input = extractBrightness(imagePaths[i], true);
             std::vector<double> result = network->compute(input);
