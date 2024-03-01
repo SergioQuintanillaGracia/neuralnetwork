@@ -10,7 +10,7 @@ import os
 import re
 
 # Configure scaling and theme
-scale = 1
+scale = 2
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("blue")
 ctk.set_window_scaling(scale)
@@ -22,11 +22,11 @@ app.geometry("940x560")
 app.title("NeuralNetwork GUI")
 
 # Variables
-threads = 22
+threads = 16
 update_gen_label_interval = 25
 update_model_accuracy_interval = 100
 save_to_disk_interval = 250
-image_limit = 1000
+image_limit = -1
 weights_mutation_range = 0.05
 biases_mutation_range = 0.05
 mutation_center_offset_range = 0.2
