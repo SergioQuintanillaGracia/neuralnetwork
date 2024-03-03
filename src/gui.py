@@ -10,7 +10,7 @@ import os
 import re
 
 # Configure scaling and theme
-scale = 1
+scale = 2
 ctk.set_appearance_mode("system")
 ctk.set_default_color_theme("blue")
 ctk.set_window_scaling(scale)
@@ -22,14 +22,15 @@ app.geometry("940x560")
 app.title("NeuralNetwork GUI")
 
 # Variables
-threads = 20
-update_gen_label_interval = 25
+threads = 18
+update_gen_label_interval = 1
+update_gen_label_pause = 0.25
 update_model_accuracy_interval = 100
 save_to_disk_interval = 250
 image_limit = -1
-weights_mutation_range = 0.05
-biases_mutation_range = 0.05
-mutation_center_offset_range = 0.2
+weights_mutation_range = 0.00
+biases_mutation_range = 0.00
+mutation_center_offset_range = 0.02
 models_dir = "./networks/GUI_models/"
 current_model_name: str = None
 current_model_obj_names: list[str] = []
@@ -282,13 +283,13 @@ def train_model_loop() -> None:
         
         if (i + 1) % update_gen_label_interval == 0:
             update_gen_label(i + 1, generations)
-            time.sleep(0.1)
+            time.sleep(update_gen_label_pause)
     
     train_gen_entry.place(relx=0.25, rely=0.85, anchor=ctk.CENTER)
     train_gen_label.place_forget()
 
 def update_training_model_information(also_set_to_base: bool = False) -> None:
-    accuracy_string: str = bindings.getAccuracyString(current_model_obj_names, current_model_img_paths, image_limit)
+    accuracy_string: str = bindings.getAccuracyString(current_model_obj_names, current_model_img_paths, -1)
     split_accuracy_string: list[str] = accuracy_string.split(" | ")
     obj_accuracy_list: list[float] = [float(el.split(": ")[1][:-1]) for el in split_accuracy_string[:-1]]
     general_accuracy: float = float(split_accuracy_string[-1].split(": ")[1][:-1])

@@ -55,5 +55,20 @@
     ],
     "weightsPath": "./networks/GUI_models/test/default.weights",
     "biasesPath": "./networks/GUI_models/test/default.bias"
+  },
+  "sq_cir": {
+    "objNames": [
+      "Circle",
+      "Square"
+    ],
+    "imgPath": "/home/sergio/Repos/NeuralNetwork/training/squares_circles_manual",
+    "layers": [
+      576,
+      128,
+      64,
+      2
+    ],
+    "weightsPath": "./networks/GUI_models/sq_cir/default.weights",
+    "biasesPath": "./networks/GUI_models/sq_cir/default.bias"
   }
 }
