@@ -70,5 +70,28 @@
     ],
     "weightsPath": "./networks/GUI_models/sq_cir/default.weights",
     "biasesPath": "./networks/GUI_models/sq_cir/default.bias"
+  },
+  "digits_simple": {
+    "objNames": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "imgPath": "/home/sergio/Repos/NeuralNetwork/training/mnist_png/training",
+    "layers": [
+      784,
+      16,
+      16,
+      10
+    ],
+    "weightsPath": "./networks/GUI_models/digits_simple/default.weights",
+    "biasesPath": "./networks/GUI_models/digits_simple/default.bias"
   }
 }

@@ -559,7 +559,7 @@ double GeneticNetworkTrainer::fitness(NeuralNetwork* network, const std::vector<
     int min = correct[std::distance(correct.begin(), std::min_element(correct.begin(), correct.end()))];
     max = max != 0 ? max : 1;
 
-    return points * (0.1 * (1 - (max - min) / max) + 0.9);
+    return points * (0.2 * (1 - (max - min) / max) + 0.8);
 }
 
 std::string GeneticNetworkTrainer::getAccuracyString(const std::vector<std::string>& objNames, const std::vector<std::string>& paths, int imageLimit) {
